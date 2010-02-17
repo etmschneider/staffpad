@@ -1,4 +1,30 @@
 = Versions =
+
+
+Version 0.9 will be the first beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
+
+  * 0.9
+    * Recognize most standard music objects, as listed below.  Recognition should be fairly accurate and reliable over a wide variety of users.
+      * notes (heads, stems, and flags independently)
+      * clefs (at least treble & bass)
+      * accidentals (at least flat and sharp
+      * Note additions (accents, staccato markings, rhythm dots)
+      * slurs, ties
+      * barlines
+      * anything unrecognized should still be drawn and saved, so user can make annotations, etc, but marked as unrecognized
+    * Association of new drawn markings with existing symbols
+      * apply accidentals to correct note
+      * apply stems to noteheads, flags to notes, etc.
+      * apply noteheads to existing stem/notehead for chords (including the special case of whole note chords
+      * apply slurs and ties to existing notes
+    * Ability to erase symbols and markings with the stylus eraser.
+    * Program should zoom and resize correctly, without causing notes to be lost or anything weird to happen
+    * Robust - all possible errors should be handled, and bad input should not be able to crash the program
+    * Flexible, well commented, and documented code structure so that it is easy to add new symbols or other features
+    * Staff systems - more than one staff in a single system (such as piano staves, or orchestral scores
+    * beams - ability to beam together sets of notes
+    * time signatures - recognition of time signatures
+
 A list of features that must be implemented before each version is tagged.  This should serve as a structure for coding the project.
 
   * 0.0:
