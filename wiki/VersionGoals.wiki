@@ -1,9 +1,27 @@
 = Versions =
 
+These versions represent incremental and significant goals for the next minor and major releases.
 
-Version 0.9 will be the first beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
+This serves as a list of features that must be implemented before each version is tagged.  This should serve as a structure for coding the project, and allows goals to be set for the next release(s).
 
-  * 0.9
+  * 0.0:
+    * This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.
+  * 0.1:
+    * Program should run without errors
+    * A default "page" should appear on startup, with staves
+    * A simple classifier should be implemented, recognizing noteheads, vertical lines, and categorizing everything else as "unknown".
+    * Noteheads should be recognized when drawn, and attached to the appropriate staves
+    * Barlines should be recognized when drawn, and attached to the appropriate staves
+    * Vertical lines should be recognized and attached to single notes when appropriate
+  * 0.2:
+    * The basic code structure should be cemented
+    * Support for multi-segment gestures should be implemented
+    * Basic accidentals should be recognized and attached to appropriate notes
+  * 0.3: TBD
+
+The first major milestone will be version 0.99  This will be a beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
+
+  * 0.99
     * Recognize most standard music objects, as listed below.  Recognition should be fairly accurate and reliable over a wide variety of users.
       * notes (heads, stems, and flags independently)
       * clefs (at least treble & bass)
@@ -25,20 +43,10 @@ Version 0.9 will be the first beta release.  At this point, the program is mostl
     * beams - ability to beam together sets of notes
     * time signatures - recognition of time signatures
 
-A list of features that must be implemented before each version is tagged.  This should serve as a structure for coding the project.
+Version 1.0 will be the first full release.  The requirement for version 1.0 is to solicit feedback, and apply any necessary changes to make the program more usable and natural, as well as to collect feature requests for future versions.
 
-  * 0.0:
-    * This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.
-  * 0.1:
-    * Program should run without errors
-    * A default "page" should appear on startup, with staves
-    * A simple classifier should be implemented, recognizing noteheads, vertical lines, and categorizing everything else as "unknown".
-    * Noteheads should be recognized when drawn, and attached to the appropriate staves
-    * Barlines should be recognized when drawn, and attached to the appropriate staves
-    * Vertical lines should be recognized and attached to single notes when appropriate
-  * 0.2:
-    * The basic code structure should be cemented
-    * Support for multi-segment gestures should be implemented
-    * Basic accidentals should be recognized and attached to appropriate notes
-  * 0.3:
-    * TBD
+= Future Features =
+These features have been identified as possibly useful and desirable, but have not been assigned to a particular version.
+  * Auto-train: Right click on unrecognized drawn objects to select desired object, and add this to the training set.
+  * Export music to a standard notation or music format or formats
+  * An "alignment" or "prettify" feature, which lines up the symbols in an aesthetically pleasing (and musical semantics respectful) way
