@@ -6,11 +6,11 @@ These versions represent incremental and significant goals for the next minor an
     * *This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.*
   * 0.1:
     * Program should run without errors
-    * A default "page" should appear on startup, with staves
-    * A simple classifier should be implemented, recognizing noteheads, vertical lines, and categorizing everything else as "unknown".
-    * Noteheads should be recognized when drawn, and attached to the appropriate staves
-    * Barlines should be recognized when drawn, and attached to the appropriate staves
-    * Vertical lines should be recognized and attached to single notes when appropriate
+    * *A simple classifier should be implemented, recognizing noteheads, vertical lines,* and categorizing everything else as "unknown".
+    * *A default "page" should appear on startup, with staves*
+    * *Noteheads should be recognized when drawn, and attached to the appropriate staves*
+    * *Barlines should be recognized when drawn, and attached to the appropriate staves*
+    * *Other Vertical lines should be recognized and attached to single notes when appropriate*
   * 0.2:
     * The basic code structure should be cemented
     * Support for multi-segment gestures should be implemented
