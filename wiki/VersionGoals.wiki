@@ -22,16 +22,18 @@ The first major milestone will be version 0.99  This will be a beta release.  At
   * 0.99
     * Recognize most standard music objects, as listed below.  Recognition should be fairly accurate and reliable over a wide variety of users.
       * notes (heads, stems, and flags independently)
+        * ledger lines should be drawn with notes
       * clefs (at least treble & bass)
       * accidentals (at least flat and sharp
       * Note additions (accents, staccato markings, rhythm dots)
       * slurs, ties
-      * barlines
+      * barlines - including double barlines and repeats
       * anything unrecognized should still be drawn and saved, so user can make annotations, etc, but marked as unrecognized
     * Association of new drawn markings with existing symbols
       * apply accidentals to correct note
       * apply stems to noteheads, flags to notes, etc.
       * apply noteheads to existing stem/notehead for chords (including the special case of whole note chords
+      * handle clusters of notes in chords.
       * apply slurs and ties to existing notes
     * Ability to erase symbols and markings with the stylus eraser.
     * Program should zoom and resize correctly, without causing notes to be lost or anything weird to happen
@@ -48,3 +50,9 @@ These features have been identified as possibly useful and desirable, but have n
   * Auto-train: Right click on unrecognized drawn objects to select desired object, and add this to the training set.
   * Export music to a standard notation or music format or formats
   * An "alignment" or "prettify" feature, which lines up the symbols in an aesthetically pleasing (and musical semantics respectful) way
+  * Transpose option (select notes with right click, including box select, and then use up and down arrows?)
+  * Web interface?
+  * drag and move objects
+  * undo ability
+  * change arrow cursor to an ink-aware cursor
+  * visual appeal - better looking noteheads
