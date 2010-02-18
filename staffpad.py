@@ -116,6 +116,47 @@ def main():
 					# draw note
 					objects.append(n)
 					n.draw(background,zoom);
+				elif type == 'vline':
+					top = amin(shape,0)[1]
+					bottom = amax(shape,0)[1] 
+					#TODO: maybe there should be a top and bottom staff?
+					close_staff = MusicObjects.get_closest(objects,pos,MusicObjects.TYPE_STAFF)
+					topline = close_staff.which_line(top,zoom);
+					bottomline = close_staff.which_line(bottom,zoom);
+
+					topNote = MusicObjects.getClosestNoteOnLine(objects,pos[0],close_staff,topline)
+					bottomNote = MusicObjects.getClosestNoteOnLine(objects,pos[0],close_staff,bottomline)
+					topNoteDist = Inf
+					bottomNoteDist = Inf
+					if topNote and abs(pos[0]-topNote.position[0]) < MusicObjects.STAFFSPACING*0.75*zoom:
+						topNoteDist = abs(pos[0]-topNote.position[0])
+					if bottomNote and abs(pos[0]-bottomNote.position[0]) < MusicObjects.STAFFSPACING*0.75*zoom:
+						bottomNoteDist = abs(pos[0]-bottomNote.position[0])
+
+					# If the vertical line's top or bottom is close to a note,
+					# then we make it a stem of that note, giving preference
+					# to the closest note (bottom if they are equal)
+					if min(bottomNoteDist,topNoteDist) < Inf:
+						if bottomNoteDist <= topNoteDist:
+							print "stem for note at bottom of line"
+							#TODO: make stem attach to bottom note
+						else:
+							print "stem for note at top of line"
+							#TODO: make stem attach to top note
+
+					# Otherwise, for it to be a barline, it must start and end
+					# at the staff's top and bottom line
+					# TODO: Change these values to a staff constant, based on 
+					# staff type
+					elif (topline == -4 and bottomline == 4):
+						barline = MusicObjects.Barline(pos[0],close_staff)
+						# draw barline
+						objects.append(barline)
+						barline.draw(background,zoom);
+					else:
+						print "unrecognized vertical line"
+					
+
 				# erase ink
 				# pygame.draw.rect(overlay, (0,0,0,0), (0,0), (width,height));
 				overlay.fill((0,0,0,0))
