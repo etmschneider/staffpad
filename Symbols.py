@@ -33,6 +33,12 @@ def center(shape):
 	h = mxpts[1] - mnpts[1] + 1
 	return [mnpts[0]+w/2,mnpts[1]+h/2]
 
+def boundingBox(shape):
+	mnpts = amin(shape,0)
+	mxpts = amax(shape,0)
+	return (mnpts,mxpts)
+	
+
 # This function contains the logic to classify the shape into a basic symbol -
 # a vertical line, empty cirle, filled in circle, sharp or flat, or perhaps
 # something more complicated (or none of the above

@@ -29,6 +29,7 @@ class Staff(MusicObject):
 		MusicObject.__init__(self,pos)
 		self.width = width
 		self.type = TYPE_STAFF
+		self.objects = []
 	def draw(self,canvas,scale):
 		for i in [-2,-1,0,1,2]:
 			h = (i*STAFFSPACING+self.position[1])*scale
@@ -36,8 +37,12 @@ class Staff(MusicObject):
 	# For staves, the vertical distance is all that matters.
 	def dist(self,point):
 		return abs(self.position[1]-point[1])
-	def which_line(self,y,scale = 1):
-		return int(round(2.0*(y - self.position[1])/(STAFFSPACING*scale)))
+	def whichLine(self,y):
+		return int(round(2.0*(y - self.position[1])/(STAFFSPACING)))
+	def addNote(self,note):
+		self.objects.append(note)
+	def addObject(self,obj):
+		self.objects.append(obj)
 
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
@@ -56,27 +61,23 @@ class Barline(MusicObject):
 # This is a notehead object.  It should really just be a notehead, and not
 # representative of anything more.
 class Note(MusicObject):
-	def __init__(self,pos,length,parent = None):
+	def __init__(self,pos,length,parent):
 		MusicObject.__init__(self,pos)
 		self.length = length
 		self.parent = parent
-		if parent != None:
-			line = parent.which_line(pos[1],1)
-			self.position[1] = line
+		self.position[1] = parent.whichLine(pos[1])
 		self.type = TYPE_NOTE
 	def draw(self,canvas,scale):
-		if self.parent == None:
-			if self.length == NOTE_FILLED:
-				pygame.draw.circle(canvas,pygame.Color("black"),self.position, 8)
-			if self.length == NOTE_EMPTY:
-				pygame.draw.circle(canvas,pygame.Color("black"),self.position, 8, 2)
-		else:
-			x = self.position[0]
-			y = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
-			if self.length == NOTE_FILLED:
-				pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8)
-			if self.length == NOTE_EMPTY:
-				pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8, 2)
+		x = self.position[0]
+		y = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
+		if self.length == NOTE_FILLED:
+			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8)
+		if self.length == NOTE_EMPTY:
+			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8, 2)
+	def dist(self,point):
+		x = self.position[0]-point[0]
+		y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1]) - point[1]
+		return sqrt(x*x+y*y)
 
 # This is a stem for a notehead.  It's parent is the chord it attaches to.
 class Stem(MusicObject):
@@ -86,15 +87,16 @@ class Stem(MusicObject):
 # Chords contain one or more notes, as well as stems, accents, rhythm dots, etc.
 class Chord(MusicObject):
 	def __init__(self,pos):
+		MusicObject.__init__(self,pos)
 
-def get_closest(objects,point,type = TYPE_ANY):
+def getClosest(objects,point,type = TYPE_ANY):
 	dist = inf
 	best = None
 	for object in objects:
 		if (type == TYPE_ANY or object.type == type) and object.dist(point) < dist:
 			dist = object.dist(point)
 			best = object
-	return best
+	return best, dist
 
 def getClosestNoteOnLine(objects,xpos,staff,line):
 	dist = inf
