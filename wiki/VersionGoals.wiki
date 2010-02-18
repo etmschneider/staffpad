@@ -1,6 +1,6 @@
 = Versions =
 
-These versions represent incremental and significant goals for the next minor and major releases. This serves as a list of features that must be implemented before each version is tagged.  This should serve as a structure for coding the project, and allows goals to be set for the next release(s).  Completed versions should be boldfaced to indicate their completion.
+These versions represent incremental and significant goals for the next minor and major releases. This serves as a list of features that must be implemented before each version is tagged.  This should serve as a structure for coding the project, and allows goals to be set for the next release(s).  Completed versions and features should be boldfaced to indicate their completion.
 
   * *0.0:*
     * *This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.*
