@@ -21,10 +21,6 @@ def makeOverlay(size):
 	overlay.fill((0,0,0,0))
 	return overlay
 
-# This function redraws all of the objects onto the background at a given size
-def redraw(width,height,zoom):
-	pass
-
 class Page:
 	def __init__(self,pad):
 		"""
@@ -59,16 +55,17 @@ class Page:
 			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
 
 			# get closest staff to attach note to
+			# TODO: find the closest appropriate stem, first.  If we could
+			# attach to that, do that instead of attaching to a staff.
 			staff, dist = MusicObjects.getClosest(self.staves,center)
 
 			# make note object
 			if type == 'dot':
-				n = MusicObjects.Note(center,MusicObjects.NOTE_FILLED,staff)
+				n = MusicObjects.Note(center,staff,MusicObjects.NOTE_FILLED)
 			elif type == 'circle':
-				n = MusicObjects.Note(center,MusicObjects.NOTE_EMPTY,staff)
+				n = MusicObjects.Note(center,staff,MusicObjects.NOTE_EMPTY)
 
-			# attach note to staff, and draw it TODO: should we trigger a redraw
-			# instead?
+			# attach note to staff, and draw it #TODO: Just do a redraw instead?
 			staff.addNote(n)
 			n.draw(self.pad.background,self.pad.zoom)
 
@@ -92,13 +89,20 @@ class Page:
 			# If the vertical line's top or bottom is close to a note,
 			# then we make it a stem of that note, giving preference
 			# to the closest note (bottom if they are equal)
+			# TODO: make the stem connect to multiple notes, not just those at
+			# the top or bottom, to make chords.
 			if min(botDist,topDist) < MusicObjects.STAFFSPACING*0.75:
+				stemLen = abs(endlines[0]-endlines[1])
 				if botDist <= topDist:
-					print "stem for note at bottom of line"
-					#TODO: make stem attach to bottom note
+					stem = MusicObjects.Stem((center[0],botNote.position[1]),
+					                         staff,stemLen,1,[botNote])
 				else:
-					print "stem for note at top of line"
-					#TODO: make stem attach to top note
+					stem = MusicObjects.Stem((center[0],topNote.position[1]),
+					                         staff,stemLen,-1,[topNote])
+
+				# Add the object to the staff, and redraw.
+				staff.addObject(stem)
+				self.pad.redraw()
 
 			# Otherwise, for it to be a barline, it must start and end
 			# at the staff's top and bottom line
@@ -281,14 +285,18 @@ class StaffPad:
 
 	def redraw(self):
 		"""
-		  This function redraws the objects on screen after a zoom, scroll, or
-		  resize.  It is also responsible for the intial drawing of objects.
+		  This function redraws the objects on screen after a zoom, scroll,
+		  resize, or other change.  It is also responsible for the initial
+		  drawing of objects.
 		"""
 		# TODO: do we have to adjust the background size to be as big as the
 		# scaled page size, and then only display part of it on the screen? If
 		# this isn't done, will higher zooms or small screens cause objects to
 		# be drawn off of the background, causing errors?
 		# TODO: can we just do scrolling by adjusting the blit point?
+
+		# First erase, then draw.
+		self.background.fill(pygame.Color("white"))
 		for staff in self.pages[self.currentPage].staves:
 			staff.draw(self.background, self.zoom)
 		self.screen.blit(self.background, (0,0))
