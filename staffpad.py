@@ -232,7 +232,7 @@ class StaffPad:
 				if len(shape) == 0 or shape[-1][0] != xPos or shape[-1][1] != yPos:
 					shape.append([xPos,yPos])
 				# Draw the corresponding line segment on the overlay
-				pygame.draw.line(self.overlay, pygame.Color("black"), (xPrev,yPrev), (xPos,yPos), self.radius*2)
+				pygame.draw.line(self.overlay, pygame.Color("black"), (xPrev,yPrev), (xPos,yPos), int(self.radius*2))
 
 			# As soon as the button is lifted, classify the gesture, and add the
 			# object.
@@ -266,7 +266,7 @@ class StaffPad:
 				pass
 
 			# Draw our mouse pointer representation:
-			pygame.draw.circle(self.mouseSurface, pygame.Color("orange"), (self.radius,self.radius), self.radius)
+			pygame.draw.circle(self.mouseSurface, pygame.Color("orange"), (int(self.radius),int(self.radius)), int(self.radius))
 
 			# Blit (write) all of the background and overlay data to the screen 
 			self.screen.blit(self.background, (0,0))
