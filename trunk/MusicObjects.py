@@ -45,8 +45,8 @@ class Staff(MusicObject):
 		"""
 		# Draw staff
 		for i in [-2,-1,0,1,2]:
-			h = (i*STAFFSPACING+self.position[1])*scale
-			pygame.draw.line(canvas, BLACK, (0,h), (self.width,h), 1*scale)
+			h = int((i*STAFFSPACING+self.position[1])*scale)
+			pygame.draw.line(canvas, BLACK, (0,h), (self.width,h), int(1.0*scale))
 		# Draw children
 		for obj in self.objects:
 			obj.draw(canvas,scale)
@@ -117,11 +117,11 @@ class Note(MusicObject):
 		  parent is a staff or a stem, these cases are handled differently here.
 		"""
 		if self.parent.type == TYPE_STAFF:
-			x = self.position[0]
+			x = int(self.position[0])
 			y = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
 		elif self.parent.type == TYPE_STEM:
 			side = self.position[0]
-			x = self.parent.position[0] + (STAFFSPACING/2.0)*scale*side;
+			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*scale*side);
 			y = self.parent.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
 
 		if self.length == NOTE_FILLED:
