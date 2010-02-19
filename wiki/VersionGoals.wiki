@@ -4,9 +4,9 @@ These versions represent incremental and significant goals for the next minor an
 
   * *0.0:*
     * *This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.*
-  * 0.1:
-    * Program should run without errors
-    * *A simple classifier should be implemented, recognizing noteheads, vertical lines,* and categorizing everything else as "unknown".
+  * *0.1:(
+    * *Program should run without errors*
+    * *A simple classifier should be implemented, recognizing noteheads, vertical lines, and categorizing everything else as "unknown".*
     * *A default "page" should appear on startup, with staves*
     * *Noteheads should be recognized when drawn, and attached to the appropriate staves*
     * *Barlines should be recognized when drawn, and attached to the appropriate staves*
