@@ -47,6 +47,7 @@ The first major milestone will be version 0.99  This will be a beta release.  At
     * Staff systems - more than one staff in a single system (such as piano staves, or orchestral scores
     * beams - ability to beam together sets of notes
     * time signatures - recognition of time signatures
+    * zooming, scrolling, and support for multiple pages.
 
 Version 1.0 will be the first full release.  The requirement for version 1.0 is to solicit feedback, and apply any necessary changes to make the program more usable and natural, as well as to collect feature requests for future versions.
 
