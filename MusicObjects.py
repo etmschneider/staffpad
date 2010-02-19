@@ -26,6 +26,12 @@ class MusicObject:
 		pass
 	def dist(self,point):
 		return sqrt(pow(self.position[0]-point[0],2)+pow(self.position[1]-point[1],2))
+	def isOver(self,point):
+		"""
+		  This function determines whether the given point is over the object,
+		  which is useful, for example, in determining whether to erase it.
+		"""
+		return False
 
 class Staff(MusicObject):
 	"""
@@ -137,6 +143,8 @@ class Note(MusicObject):
 		x = self.position[0]-point[0]
 		y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1]) - point[1]
 		return sqrt(x*x+y*y)
+	def isOver(self,point):
+		return self.dist(point) < (STAFFSPACING/2.0)
 
 # This is a stem for a notehead.  It's parent is the chord it attaches to.
 class Stem(MusicObject):
