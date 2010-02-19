@@ -62,3 +62,4 @@ These features have been identified as possibly useful and desirable, but have n
   * undo ability
   * change arrow cursor to an ink-aware cursor
   * visual appeal - better looking noteheads
+  * visual style - look like a pad of staff paper; holes in top or side like a tablet; area to write title, set barlines, etc.
