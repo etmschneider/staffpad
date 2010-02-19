@@ -2,29 +2,35 @@
 
 from numpy import *
 
-circle = array([[ 0.,  0.,  1.,  1.,  0.,  0.],
-                [ 0.,  1.,  0.,  0.,  1.,  0.],
-                [ 1.,  0.,  0.,  0.,  0.,  1.],
-                [ 1.,  0.,  0.,  0.,  0.,  1.],
-                [ 0.,  1.,  0.,  0.,  1.,  0.],
-                [ 0.,  0.,  1.,  1.,  0.,  0.]])
+#circle = array([[ 0,  0,  1,  1,  0,  0],
+#                [ 0,  1,  0,  0,  1,  0],
+#                [ 1,  0,  0,  0,  0,  1],
+#                [ 1,  0,  0,  0,  0,  1],
+#                [ 0,  1,  0,  0,  1,  0],
+#                [ 0,  0,  1,  1,  0,  0]])
 
-dot = array([[ 0.,  0.,  1.,  1.,  0.,  0.],
-             [ 0.,  1.,  1.,  1.,  1.,  0.],
-             [ 1.,  1.,  1.,  1.,  1.,  1.],
-             [ 1.,  1.,  1.,  1.,  1.,  1.],
-             [ 0.,  1.,  1.,  1.,  1.,  0.],
-             [ 0.,  0.,  1.,  1.,  0.,  0.]])
+circle = array([[ 0,0,0,0,1,1,1,0,0,0,0],
+                [ 0,0,1,1,0,0,0,1,1,0,0],
+                [ 0,1,0,0,0,0,0,0,0,1,0],
+                [ 1,0,0,0,0,0,0,0,0,0,1],
+                [ 1,0,0,0,0,0,0,0,0,0,1],
+                [ 0,1,0,0,0,0,0,0,0,1,0],
+                [ 0,0,1,1,0,0,0,1,1,0,0],
+                [ 0,0,0,0,1,1,1,0,0,0,0]])
+
+dot = array([[0,1,0],[1,1,1],[0,1,0]])
 
 hline = array([[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]])
 hline2 = array([[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]])
+hline3 = array([[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1 ,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]])
 
 vline = transpose(hline)
 vline2 = transpose(hline2)
+vline3 = transpose(hline3)
 
 # These two data structures go together to help return the correct symbol!
-templates = [circle,dot,hline,hline2,vline,vline2]
-symbols = ['circle','dot','hline','hline','vline','vline']
+templates = [circle,dot,hline,hline2,hline3,vline,vline2,vline3]
+symbols = ['circle','dot','hline','hline','hline','vline','vline','vline']
 
 def center(shape):
 	mnpts = amin(shape,0)
@@ -38,7 +44,6 @@ def boundingBox(shape):
 	mxpts = amax(shape,0)
 	return (mnpts,mxpts)
 	
-
 # This function contains the logic to classify the shape into a basic symbol -
 # a vertical line, empty cirle, filled in circle, sharp or flat, or perhaps
 # something more complicated (or none of the above
@@ -72,21 +77,38 @@ def classify(shape):
 	#h = size(shape,0)
 	#w = size(shape,1)
 	scores = []
-	for template in templates:
-		match = sum(transform(template,w,h) & shape_binary)
-		total = sum(transform(template,w,h))
-		score1 = double(match)/total
-		match = w*h - sum(transform(template,w,h) ^ shape_binary)
-		total = w*h
-		score2 = double(match)/total
-		score3 = (double(w)/h)/(double(size(template,1))/size(template,0))
-		score3 = min(score3,1/score3)
-		#print "obj1:",score1,score2,score3
-		scores.append(score1*score2*score3)
-	#print scores
-	mx = max(scores)
-	return symbols[scores.index(mx)]
 
+	#Resize/transform shape binary to match template
+	for template in templates:
+		wt = size(template,1)
+		ht = size(template,0)
+		# This score is high when more ones match between tmeplate and image
+		match = sum(transform(shape_binary,wt,ht) & template)
+		total = sum(template)
+		score1 = double(match)/total
+		# This score is high when both 0 and 1 match between template and image
+		match = wt*ht - sum(transform(shape_binary,wt,ht) ^ template)
+		total = wt*ht
+		score2 = double(match)/total
+		# This score is higher when the aspect ratio is close (it is the dot
+		# product of the normalized vectors.
+		score3 = (w*wt+h*ht)/sqrt(w*w+h*h)/sqrt(wt*wt+ht*ht)
+		# This aspect ratio is so important that we ignore bad scores.  For
+		# example, lots of things may look like a circle when squeezed a lot,
+		# so let's prevent that case from coming up.
+		if score3 < 0.85:
+			score3 = 0
+		#print "obj1:",score1,score2,score3
+		#scores.append(score1*score2*score3)
+		scores.append(score2*score3)
+	mx = max(scores)
+	if mx > 0.01:
+		#print mx
+		print symbols[scores.index(mx)]
+		return symbols[scores.index(mx)]
+	else:
+		print 'unclassified: ', mx
+		return 'unclassified'
 
 # Old property matching code
 #	if h/w > 7.0 and h > 10:
