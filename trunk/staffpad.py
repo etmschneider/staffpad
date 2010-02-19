@@ -41,6 +41,18 @@ class Page:
 			s = MusicObjects.Staff((0,100*i+110),self.pad.pageSize[0])
 			self.staves.append(s)
 
+	def removeObjectAtPoint(self,point):
+		"""
+		  This function removes any object that is underneath the given point.
+		"""
+		# TODO: rework this to perform better w/ hierarchy.  Maybe have each
+		# music object remove any children at that point?
+		for staff in self.staves:
+			closest,dist = MusicObjects.getClosest(staff.objects,point,MusicObjects.TYPE_NOTE)
+			if closest != None and closest.isOver(point):
+				staff.objects.remove(closest)
+				self.pad.redraw()
+
 	def addObject(self,type,rect):
 		"""
 		  This function attempts to contain all of the logic for determining
@@ -263,7 +275,8 @@ class StaffPad:
 			# This means the eraser is touching.  Currently, we don't do
 			# anything in this case.
 			if mouseButtons[1]:
-				pass
+				pagePoint = self.screenToPage([(xPos,yPos)])[0]
+				self.pages[self.currentPage].removeObjectAtPoint(pagePoint)
 
 			# Draw our mouse pointer representation:
 			pygame.draw.circle(self.mouseSurface, pygame.Color("orange"), (int(self.radius),int(self.radius)), int(self.radius))
