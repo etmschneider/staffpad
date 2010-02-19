@@ -4,7 +4,7 @@ These versions represent incremental and significant goals for the next minor an
 
   * *0.0:*
     * *This is the first commit, which is not usable.  It just indicates placement of some basic code structure in SVN.*
-  * *0.1:(
+  * *0.1:*
     * *Program should run without errors*
     * *A simple classifier should be implemented, recognizing noteheads, vertical lines, and categorizing everything else as "unknown".*
     * *A default "page" should appear on startup, with staves*
@@ -13,9 +13,14 @@ These versions represent incremental and significant goals for the next minor an
     * *Other Vertical lines should be recognized and attached to single notes when appropriate*
     * *The basic code structure should be cemented*
   * 0.2:
+    * Notes can be drawn and added to existing chords
+    * Ledger lines should be drawn by notes/chords above or below the staff.
+    * The stylus eraser should erase objects it passes over.  When passing over a stem, it should just erase the stem, not the attached notes.
+  * 0.3:
     * Support for multi-segment gestures should be implemented
     * Basic accidentals should be recognized and attached to appropriate notes
-  * 0.3: TBD
+  * 0.4:
+    * TBD
 
 The first major milestone will be version 0.99  This will be a beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
 
