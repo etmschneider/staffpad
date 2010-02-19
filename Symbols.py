@@ -104,10 +104,10 @@ def classify(shape):
 	mx = max(scores)
 	if mx > 0.01:
 		#print mx
-		print symbols[scores.index(mx)]
+		#print symbols[scores.index(mx)]
 		return symbols[scores.index(mx)]
 	else:
-		print 'unclassified: ', mx
+		#print 'unclassified: ', mx
 		return 'unclassified'
 
 # Old property matching code
