@@ -142,15 +142,27 @@ class Note(MusicObject):
 		if self.parent.type == TYPE_STAFF:
 			x = int(self.position[0])
 			y = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
+			staffMiddle = self.parent.position[1]
 		elif self.parent.type == TYPE_STEM:
 			side = self.position[0]
 			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*scale*side);
 			y = self.parent.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
+			staffMiddle = self.parent.parent.position[1]
 
 		if self.length == NOTE_FILLED:
 			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8)
 		elif self.length == NOTE_EMPTY:
 			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8, 2)
+
+		# Draw ledger lines if the note is...
+		# ...above the staff, or...
+		for line in range(ceil(self.position[1]/2.)*2,-4,2):
+			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
+			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
+		# below the staff
+		for line in range(6,int(self.position[1]/2)*2+2,2):
+			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
+			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
 
 	def dist(self,point):
 		"""
