@@ -49,7 +49,7 @@ class Page:
 		# music object remove any children at that point?
 		for staff in self.staves:
 			closest,dist = MusicObjects.getClosest(staff.objects,point,MusicObjects.TYPE_NOTE)
-			if closest != None and closest.isOver(point):
+			if closest != None and closest.isUnder(point):
 				staff.objects.remove(closest)
 				self.pad.redraw()
 
@@ -101,8 +101,6 @@ class Page:
 			# If the vertical line's top or bottom is close to a note,
 			# then we make it a stem of that note, giving preference
 			# to the closest note (bottom if they are equal)
-			# TODO: make the stem connect to multiple notes, not just those at
-			# the top or bottom, to make chords.
 			if min(botDist,topDist) < MusicObjects.STAFFSPACING*0.75:
 				stemLen = abs(endlines[0]-endlines[1])
 				if botDist <= topDist:
@@ -112,8 +110,16 @@ class Page:
 					stem = MusicObjects.Stem((center[0],topNote.position[1]),
 					                         staff,stemLen,-1,[topNote])
 
-				# Add the object to the staff, and redraw.
+				# Add the object to the staff
 				staff.addObject(stem)
+
+				# Find any other notes within range of the stem and attach them
+				area = [[center[0]-MusicObjects.STAFFSPACING*0.25,center[1]-stemLen],[center[0]+MusicObjects.STAFFSPACING*0.25,center[1]+stemLen]]
+
+				chordNotes = MusicObjects.getObjectsIn(staff.objects,area,MusicObjects.TYPE_NOTE)
+				stem.addNotes(chordNotes)
+
+				# Redraw
 				self.pad.redraw()
 
 			# Otherwise, for it to be a barline, it must start and end

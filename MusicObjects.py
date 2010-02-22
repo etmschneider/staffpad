@@ -17,7 +17,9 @@ BARLINE_NORMAL = 1
 class MusicObject:
 	"""
 	  A base class for musical objects (WITH semantic meaning; i.e., not just a
-	  circle, but a note; not just a line, but a stem or a barline).
+	  circle, but a note; not just a line, but a stem or a barline).  The
+	  base class just acts like a single point with no meaning, and should not
+	  be used by itself.
 	"""
 	def __init__(self,pos):
 		self.position = pos
@@ -26,12 +28,24 @@ class MusicObject:
 		pass
 	def dist(self,point):
 		return sqrt(pow(self.position[0]-point[0],2)+pow(self.position[1]-point[1],2))
-	def isOver(self,point):
+	def dist2(self,point):
+		"""
+		  Returns the horizontal and vertical distances from the object to the
+		  given point.  Should return signed distances.
+		"""
+		return [self.position[0]-points[0],self.position[1]-point[1]]
+	def isUnder(self,point):
 		"""
 		  This function determines whether the given point is over the object,
 		  which is useful, for example, in determining whether to erase it.
 		"""
 		return False
+	def isIn(self,rect):
+		"""
+		  This functions returns 1 if some part of the object is within the
+		  given rectangle.
+		"""
+		return (rect[0][0] < self.position[0] < rect[1][0]) and (rect[0][1] < self.position[1] < rect[1][1])
 
 class Staff(MusicObject):
 	"""
@@ -60,6 +74,9 @@ class Staff(MusicObject):
 	# For staves, "distance" is just the vertical distance to the center
 	def dist(self,point):
 		return abs(self.position[1]-point[1])
+
+	def dist2(self,points):
+		return [0,self.position[1]-point[1]]
 
 	# This function returns the closest line the the given point (with zero
 	# being the center of the staff)
@@ -143,8 +160,26 @@ class Note(MusicObject):
 		x = self.position[0]-point[0]
 		y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1]) - point[1]
 		return sqrt(x*x+y*y)
-	def isOver(self,point):
+	def isUnder(self,point):
 		return self.dist(point) < (STAFFSPACING/2.0)
+	def isIn(self,rect):
+		"""
+		  This is actually just a (close) approximation, for computational
+		  efficiency.  To figure out whether an object is in another, you can
+		  check whether a point is in the minkowski sum.  In this case, we
+		  instead just expand the rectangle by the note radius, and check the
+		  center position of the note, which gives (a small number of) false
+		  positives at the corners.
+		"""
+		# Get x and y in page coordinates		
+		if self.parent.type == TYPE_STAFF:
+			x = int(self.position[0])
+			y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
+		elif self.parent.type == TYPE_STEM:
+			side = self.position[0]
+			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*side);
+
+		return ((rect[0][0]-STAFFSPACING*0.5) < x < (rect[1][0]+STAFFSPACING*0.5)) and ((rect[0][1]-STAFFSPACING*0.5) < y < (rect[1][1]+STAFFSPACING*0.5))
 
 # This is a stem for a notehead.  It's parent is the chord it attaches to.
 class Stem(MusicObject):
@@ -185,6 +220,20 @@ class Stem(MusicObject):
 			# Change the note's parent to this stem
 			note.parent = self
 
+	def addNotes(self,notes):
+		for note in notes:
+			# Add new notes to the stem's list of notes, and remove from the
+			# list of their previous parent
+			self.notes.append(note)
+			note.parent.objects.remove(note)
+
+			# Set the x position of the notes.  In general, this is the left
+			# side for up-stems, and the left side for down-stems.
+			note.position[0] = -self.direction
+
+			# Change the note's parent to this stem
+			note.parent = self
+
 	def draw(self,canvas,scale):
 		for note in self.notes:
 			note.draw(canvas,scale)
@@ -212,3 +261,13 @@ def getClosest(objects,point,type = TYPE_ANY):
 			dist = object.dist(point)
 			best = object
 	return best, dist
+
+def getObjectsIn(objects,rect,type = TYPE_ANY):
+	"""
+	  Return all objects of a given type that are in the given rectangle.
+	"""
+	inside = []
+	for object in objects:
+		if (type == TYPE_ANY or object.type == type) and object.isIn(rect):
+			inside.append(object)
+	return inside
