@@ -16,9 +16,9 @@ These versions represent incremental and significant goals for the next minor an
     * *Ledger lines should be drawn by notes/chords above or below the staff*
     * Notes can be drawn and added to existing chords
     * The stylus eraser should erase objects it passes over.  When passing over a stem, it should just erase the stem, not the attached notes.
-    * The classifier should be vastly improved
-      * it is currently too hard to draw a filled note
-      * a training option should be added at some level
+    * *The classifier should be improved*
+      * *filled notes should be easier (possible) to draw*
+      * *a training option should be added at some level*
   * 0.3:
     * Support for multi-segment gestures should be implemented
     * Basic accidentals should be recognized and attached to appropriate notes
