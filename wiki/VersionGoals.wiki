@@ -14,7 +14,7 @@ These versions represent incremental and significant goals for the next minor an
     * *The basic code structure should be cemented*
   * 0.2:
     * *Ledger lines should be drawn by notes/chords above or below the staff*
-    * Notes can be drawn and added to existing chords
+    * *Notes can be drawn and added to existing chords*
     * The stylus eraser should erase objects it passes over.  When passing over a stem, it should just erase the stem, not the attached notes.
     * *The classifier should be improved*
       * *filled notes should be easier (possible) to draw*
