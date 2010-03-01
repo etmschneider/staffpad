@@ -64,11 +64,9 @@ class Page:
 		# - shape must be a circle or a dot
 		# - TODO: size must be in the expected range for a note
 		if type == 'circle' or type == 'dot':
-			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
+			center = (0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1]))
 
 			# get closest staff to attach note to
-			# TODO: find the closest appropriate stem, first.  If we could
-			# attach to that, do that instead of attaching to a staff.
 			staff, dist = MusicObjects.getClosest(self.staves,center)
 
 			# make note object
@@ -77,8 +75,18 @@ class Page:
 			elif type == 'circle':
 				n = MusicObjects.Note(center,staff,MusicObjects.NOTE_EMPTY)
 
-			# attach note to staff, and draw it #TODO: Just do a redraw instead?
+			# attach note to staff, and draw it
 			staff.addNote(n)
+
+			# If there is a stem close, attach note to it
+			# TODO: do this before staff logic (modify MusicObject stem code
+			# to allow this)
+			stem, dist = MusicObjects.getClosest(staff.objects,center,MusicObjects.TYPE_STEM)
+			if dist < MusicObjects.STAFFSPACING*0.75:
+				stem.addNotes((n,))
+
+			# TODO: do redraw instead? (necessary when cluster notes are
+			# implemented)
 			n.draw(self.pad.background,self.pad.zoom)
 
 		elif type == 'vline':

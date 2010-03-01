@@ -22,7 +22,7 @@ class MusicObject:
 	  be used by itself.
 	"""
 	def __init__(self,pos):
-		self.position = pos
+		self.position = list(pos)
 		self.type = TYPE_NONE
 	def draw(self,canvas,scale):
 		pass
@@ -258,12 +258,21 @@ class Stem(MusicObject):
 	def dist(self,point):
 		"""
 		  The distance function here will return the distance, in page
-		  coordinates, to the base of the stem.
+		  coordinates, to the closest part of the stem.
 		"""
 		x = self.position[0]-point[0]
-		y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1]) - point[1]
+		yTop = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
+		yBot = yTop
+		if self.direction == 1:
+			yTop -= self.length*STAFFSPACING/2.0
+		else:
+			yBot += self.length*STAFFSPACING/2.0
+		if yTop < point[1] < yBot:
+			y = 0
+		else:
+			y = min(abs(point[1] - yTop),abs(point[1] - yBot))
+
 		return sqrt(x*x+y*y)
-			
 
 def getClosest(objects,point,type = TYPE_ANY):
 	dist = inf
