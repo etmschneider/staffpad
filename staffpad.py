@@ -1,6 +1,6 @@
 import pygame
 from numpy import *
-import MusicObjects
+import MusicObjects as mus
 import Symbols
 
 def makeBackground(size):
@@ -38,7 +38,7 @@ class Page:
 
 		# Initialize the page with four staves
 		for i in range(4):
-			s = MusicObjects.Staff((0,100*i+110),self.pad.pageSize[0])
+			s = mus.Staff((0,100*i+110),self.pad.pageSize[0])
 			self.staves.append(s)
 
 	def removeObjectAtPoint(self,point):
@@ -48,7 +48,7 @@ class Page:
 		# TODO: rework this to perform better w/ hierarchy.  Maybe have each
 		# music object remove any children at that point?
 		for staff in self.staves:
-			closest,dist = MusicObjects.getClosest(staff.objects,point,MusicObjects.TYPE_NOTE)
+			closest,dist = mus.getClosest(staff.objects,point,mus.TYPE_NOTE)
 			if closest != None and closest.isUnder(point):
 				staff.objects.remove(closest)
 				self.pad.redraw()
@@ -67,13 +67,13 @@ class Page:
 			center = (0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1]))
 
 			# get closest staff to attach note to
-			staff, dist = MusicObjects.getClosest(self.staves,center)
+			staff, dist = mus.getClosest(self.staves,center)
 
 			# make note object
 			if type == 'dot':
-				n = MusicObjects.Note(center,staff,MusicObjects.NOTE_FILLED)
+				n = mus.Note(center,staff,mus.NOTE_FILLED)
 			elif type == 'circle':
-				n = MusicObjects.Note(center,staff,MusicObjects.NOTE_EMPTY)
+				n = mus.Note(center,staff,mus.NOTE_EMPTY)
 
 			# attach note to staff, and draw it
 			staff.addNote(n)
@@ -81,8 +81,8 @@ class Page:
 			# If there is a stem close, attach note to it
 			# TODO: do this before staff logic (modify MusicObject stem code
 			# to allow this)
-			stem, dist = MusicObjects.getClosest(staff.objects,center,MusicObjects.TYPE_STEM)
-			if dist < MusicObjects.STAFFSPACING*0.75:
+			stem, dist = mus.getClosest(staff.objects,center,mus.TYPE_STEM)
+			if dist < mus.STAFFSPACING*0.75:
 				stem.addNotes((n,))
 
 			# TODO: do redraw instead? (necessary when cluster notes are
@@ -97,34 +97,34 @@ class Page:
 			left = rect[0][0]
 
 			# Find the closest staff
-			staff, dist = MusicObjects.getClosest(self.staves,center)
+			staff, dist = mus.getClosest(self.staves,center)
 
 			# Find the lines which the line starts and ends at
 			endlines = [staff.whichLine(top),staff.whichLine(bottom)]
 
 			# Find the closest notes to the top and bottom of the line
-			topNote, topDist = MusicObjects.getClosest(staff.objects,(right,top),MusicObjects.TYPE_NOTE)
-			botNote, botDist = MusicObjects.getClosest(staff.objects,(left,bottom),MusicObjects.TYPE_NOTE)
+			topNote, topDist = mus.getClosest(staff.objects,(right,top),mus.TYPE_NOTE)
+			botNote, botDist = mus.getClosest(staff.objects,(left,bottom),mus.TYPE_NOTE)
 
 			# If the vertical line's top or bottom is close to a note,
 			# then we make it a stem of that note, giving preference
 			# to the closest note (bottom if they are equal)
-			if min(botDist,topDist) < MusicObjects.STAFFSPACING*0.75:
+			if min(botDist,topDist) < mus.STAFFSPACING*0.75:
 				stemLen = abs(endlines[0]-endlines[1])
 				if botDist <= topDist:
-					stem = MusicObjects.Stem((center[0],botNote.position[1]),
+					stem = mus.Stem((center[0],botNote.position[1]),
 					                         staff,stemLen,1,[botNote])
 				else:
-					stem = MusicObjects.Stem((center[0],topNote.position[1]),
+					stem = mus.Stem((center[0],topNote.position[1]),
 					                         staff,stemLen,-1,[topNote])
 
 				# Add the object to the staff
 				staff.addObject(stem)
 
 				# Find any other notes within range of the stem and attach them
-				area = [[center[0]-MusicObjects.STAFFSPACING*0.25,center[1]-stemLen],[center[0]+MusicObjects.STAFFSPACING*0.25,center[1]+stemLen]]
+				area = [[center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen],[center[0]+mus.STAFFSPACING*0.25,center[1]+stemLen]]
 
-				chordNotes = MusicObjects.getObjectsIn(staff.objects,area,MusicObjects.TYPE_NOTE)
+				chordNotes = mus.getObjectsIn(staff.objects,area,mus.TYPE_NOTE)
 				stem.addNotes(chordNotes)
 
 				# Redraw
@@ -135,7 +135,7 @@ class Page:
 			# TODO: Change these values to a staff constant, based on 
 			# staff type
 			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
-				barline = MusicObjects.Barline(center[0],staff)
+				barline = mus.Barline(center[0],staff)
 				# draw barline
 				staff.addObject(barline)
 				barline.draw(self.pad.background,self.pad.zoom);
@@ -286,8 +286,7 @@ class StaffPad:
 				self.overlay.fill((0,0,0,0))
 				shape = []
 
-			# This means the eraser is touching.  Currently, we don't do
-			# anything in this case.
+			# This means the eraser is touching.
 			if mouseButtons[1]:
 				pagePoint = self.screenToPage([(xPos,yPos)])[0]
 				self.pages[self.currentPage].removeObjectAtPoint(pagePoint)
