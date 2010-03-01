@@ -156,7 +156,7 @@ class Note(MusicObject):
 
 		# Draw ledger lines if the note is...
 		# ...above the staff, or...
-		for line in range(ceil(self.position[1]/2.)*2,-4,2):
+		for line in range(int(ceil(self.position[1]/2.))*2,-4,2):
 			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
 			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
 		# below the staff
