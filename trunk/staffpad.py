@@ -155,7 +155,7 @@ class StaffPad:
 
 		# Initialize the screen, background, and overlays
 		self.resizeScreen([width,height])
-		pygame.display.set_caption("StaffPad v0.0");
+		pygame.display.set_caption("StaffPad v0.2");
 
 		# This is the page size (represents maximum width of staves)
 		# TODO: logic of resizing the page.  Bigger is fairly simple, smaller
