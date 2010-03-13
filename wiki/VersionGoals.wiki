@@ -53,6 +53,13 @@ The first major milestone will be version 0.99  This will be a beta release.  At
     * beams - ability to beam together sets of notes
     * time signatures - recognition of time signatures
     * zooming, scrolling, and support for multiple pages.
+    * Saving - save and load scores
+    * "handwritten" look - program should use what the user actually drew, rather than a perfect computer symbol
+    * drag/drop
+      * Transposition - notes should be able to be dragged up and down to be tranposed
+      * Reposition - notes and symbols should be repositioned via dragging
+    * right click
+      * right-clicking on an object should bring up options - perhaps change object, etc.
 
 Version 1.0 will be the first full release.  The requirement for version 1.0 is to solicit feedback, and apply any necessary changes to make the program more usable and natural, as well as to collect feature requests for future versions.
 
