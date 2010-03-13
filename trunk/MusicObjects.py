@@ -278,6 +278,7 @@ class Stem(MusicObject):
 			# Change the note's parent to this stem
 			note.parent = self
 		self.setRect()
+		self.clusterNotes()
 
 	def setRect(self):
 		x = self.position[0]
@@ -302,6 +303,7 @@ class Stem(MusicObject):
 
 			# Change the note's parent to this stem
 			note.parent = self
+		self.clusterNotes()
 
 	def draw(self,canvas,scale):
 		for note in self.notes:
@@ -378,6 +380,37 @@ class Stem(MusicObject):
 					minPos = min(note.position[1],minPos)
 				self.length -= minPos-self.position[1]
 				self.position[1] = minPos
+			#clusters the remaining notes correctly
+			self.clusterNotes()
+
+	def clusterNotes(self):
+		"""
+			This function computes the correct x-position (left or right of the
+			stem) for each note in a chord, taking into account the effect of
+			"clustered" notes (ones a second apart)
+		"""
+		noteList = {}
+		for note in self.notes:
+			noteList[note.position[1]] = note
+		order = noteList.keys()
+		order.sort()
+
+		# For a down-stem:
+		if self.direction == -1:
+			noteList[order[0]].position[0] = -self.direction
+			for i in range(1,len(order)):
+				if (order[i-1] == order[i]-1):
+					noteList[order[i]].position[0] = -noteList[order[i-1]].position[0]
+				else:
+					noteList[order[i]].position[0] = -self.direction
+		# For an up-stem:
+		else:
+			noteList[order[-1]].position[0] = -self.direction
+			for i in range(1,len(order)):
+				if (order[-i] == order[-i-1]+1):
+					noteList[order[-i-1]].position[0] = -noteList[order[-i]].position[0]
+				else:
+					noteList[order[-i-1]].position[0] = -self.direction
 
 def getClosest(objects,point,type = TYPE_ANY):
 	dist = inf

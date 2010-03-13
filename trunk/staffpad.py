@@ -82,9 +82,8 @@ class Page:
 			if dist < mus.STAFFSPACING*0.75:
 				stem.addNotes((n,))
 
-			# TODO: do redraw instead? (necessary when cluster notes are
-			# implemented)
-			n.draw(self.pad.background,self.pad.zoom)
+			# Redraw (necessary because note may affect other clustered notes)
+			self.pad.redraw()
 
 		elif type == 'vline':
 			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
