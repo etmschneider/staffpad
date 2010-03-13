@@ -12,7 +12,7 @@ These versions represent incremental and significant goals for the next minor an
     * *Barlines should be recognized when drawn, and attached to the appropriate staves*
     * *Other Vertical lines should be recognized and attached to single notes when appropriate*
     * *The basic code structure should be cemented*
-  * 0.2:
+  * *0.2:*
     * *Ledger lines should be drawn by notes/chords above or below the staff*
     * *Notes can be drawn and added to existing chords*
     * *The stylus eraser should erase objects it passes over.  When passing over a stem, it should just erase the stem, not the attached notes.*
