@@ -45,12 +45,9 @@ class Page:
 		"""
 		  This function removes any object that is underneath the given point.
 		"""
-		# TODO: rework this to perform better w/ hierarchy.  Maybe have each
-		# music object remove any children at that point?
 		for staff in self.staves:
-			closest,dist = mus.getClosest(staff.objects,point,mus.TYPE_NOTE)
-			if closest != None and closest.isUnder(point):
-				staff.objects.remove(closest)
+			# redraw if objects are removed
+			if staff.removeAt(point):
 				self.pad.redraw()
 
 	def addObject(self,type,rect):

@@ -24,6 +24,7 @@ class MusicObject:
 	def __init__(self,pos):
 		self.position = list(pos)
 		self.type = TYPE_NONE
+		self.rect = pygame.Rect(0,0,0,0)
 	def draw(self,canvas,scale):
 		pass
 	def dist(self,point):
@@ -58,6 +59,8 @@ class Staff(MusicObject):
 		self.width = width
 		self.type = TYPE_STAFF
 		self.objects = []
+		height = STAFFSPACING*4.0
+		self.rect = pygame.Rect(pos[0],pos[1]-height/2.0,width,height)
 
 	def draw(self,canvas,scale):
 		"""
@@ -90,6 +93,30 @@ class Staff(MusicObject):
 	def addObject(self,obj):
 		self.objects.append(obj)
 
+	def removeAt(self,point):
+		"""
+		  Remove any objects at the given point.  For notes, remove any accents
+		  or accidentals associated with them.  For barlines, simply remove the
+		  barline.  For stemmed notes: remove only the stem if the point is
+		  over the stem, only the note if it is over one note in a multi-note
+		  chord (readjusting stem length if necessary), and both if the point
+		  is over the notehead on a single note with stem.
+	
+		  Return value is True if objects were removed, false if not.
+		"""
+		removed = False
+		for object in self.objects:
+			if object.isUnder(point):
+				# Remove free notes and barlines
+				if object.type == TYPE_NOTE or object.type == TYPE_BARLINE:
+					self.objects.remove(object)
+					removed = True
+				# Remove notes from stem or stem from notes (or both)
+				if object.type == TYPE_STEM:
+					object.removeAt(point)
+					removed = True
+		return removed
+
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
 		MusicObject.__init__(self,(xpos,0))
@@ -98,6 +125,7 @@ class Barline(MusicObject):
 		self.position = (xpos,0);
 		self.type = TYPE_BARLINE
 		self.style = BARLINE_NORMAL
+		self.rect = pygame.Rect(xpos-1,self.parent.rect.top,2,self.parent.rect.h)
 	def draw(self,canvas,scale):
 		x = self.position[0]
 		t = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*(-4))
@@ -106,6 +134,8 @@ class Barline(MusicObject):
 	# For barlines, distance is the horizontal distance to the line
 	def dist(self,point):
 		return abs(self.position[0]-point[0])
+	def isUnder(self,point):
+		return self.rect.collidepoint(point)
 
 class Note(MusicObject):
 	"""
@@ -133,11 +163,22 @@ class Note(MusicObject):
 		if self.parent.type == TYPE_STEM:
 			self.position[1] = parent.parent.whichLine(pos[1])
 			self.position[0] = side
+		self.setRect
+
+	def setRect(self):
+		if self.parent.type == TYPE_STAFF:
+			x = self.position[0]
+			y = self.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]
+		elif self.parent.type == TYPE_STEM:
+			side = self.position[0]
+			x = self.parent.position[0] + (STAFFSPACING/2.0)*scale*side;
+			y = self.parent.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]
+		self.rect = pygame.Rect(x-STAFFSPACING/2.0,y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
 
 	def draw(self,canvas,scale):
 		"""
 		  Because the x and y positions have different semantic meanings if the
-		  parent is a staff or a stem, these cases are handled differently here.
+		  parent is a staff or a stem, these cases are handled differently here
 		"""
 		if self.parent.type == TYPE_STAFF:
 			x = int(self.position[0])
@@ -169,8 +210,13 @@ class Note(MusicObject):
 		  The distance function here will return the distance, in page
 		  coordinates, to the center of the note.
 		"""
-		x = self.position[0]-point[0]
-		y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1]) - point[1]
+		if self.parent.type == TYPE_STAFF:
+			x = self.position[0]-point[0]
+			y = self.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]-point[1]
+		elif self.parent.type == TYPE_STEM:
+			side = self.position[0]
+			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*side)-point[0]
+			y = self.parent.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]-point[1]
 		return sqrt(x*x+y*y)
 	def isUnder(self,point):
 		return self.dist(point) < (STAFFSPACING/2.0)
@@ -190,10 +236,10 @@ class Note(MusicObject):
 		elif self.parent.type == TYPE_STEM:
 			side = self.position[0]
 			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*side);
+			y = self.parent.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
 
 		return ((rect[0][0]-STAFFSPACING*0.5) < x < (rect[1][0]+STAFFSPACING*0.5)) and ((rect[0][1]-STAFFSPACING*0.5) < y < (rect[1][1]+STAFFSPACING*0.5))
 
-# This is a stem for a notehead.  It's parent is the chord it attaches to.
 class Stem(MusicObject):
 	"""
 	  A stem is a vertical line, attached to one or more notes.  It can either
@@ -231,6 +277,17 @@ class Stem(MusicObject):
 
 			# Change the note's parent to this stem
 			note.parent = self
+		self.setRect()
+
+	def setRect(self):
+		x = self.position[0]
+		yTop = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
+		yBot = yTop
+		if self.direction == 1:
+			yTop -= self.length*STAFFSPACING/2.0
+		else:
+			yBot += self.length*STAFFSPACING/2.0
+		self.rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
 
 	def addNotes(self,notes):
 		for note in notes:
@@ -273,6 +330,54 @@ class Stem(MusicObject):
 			y = min(abs(point[1] - yTop),abs(point[1] - yBot))
 
 		return sqrt(x*x+y*y)
+
+	def isUnder(self,point):
+		"""
+		  Is any part of the stem or connected notes under the given point?
+		"""
+		if self.rect.collidepoint(point):
+			return True
+		for note in self.notes:
+			if note.isUnder(point):
+				return True
+		return False
+
+	def removeAt(self,point):
+		"""
+		  This is called if a stem or stemmed note collides with the given point
+		  and has to be removed.
+		"""
+		removeMe = []
+		for note in self.notes:
+			if note.isUnder(point):
+				removeMe.append(note)
+		for note in removeMe:
+			self.notes.remove(note)
+
+		# If we collide with the stem or have erased all the notes, delete the
+		# stem
+		if self.rect.collidepoint(point) or len(self.notes) == 0:
+			self.parent.objects.remove(self)
+			for note in self.notes:
+				self.parent.objects.append(note)
+				note.parent = self.parent
+				note.position[0] = self.position[0] + (STAFFSPACING/2.0)*note.position[0];
+		# recompute stem location, length, and any clusters
+		else:
+			# the base note is the lowest on the page (highest y)
+			if self.direction == 1:
+				maxPos = -inf
+				for note in self.notes:
+					maxPos = max(note.position[1],maxPos)
+				self.length -= self.position[1]-maxPos
+				self.position[1] = maxPos
+			# the base note is the highest on the page (lowest y)
+			else:
+				minPos = inf
+				for note in self.notes:
+					minPos = min(note.position[1],minPos)
+				self.length -= minPos-self.position[1]
+				self.position[1] = minPos
 
 def getClosest(objects,point,type = TYPE_ANY):
 	dist = inf
