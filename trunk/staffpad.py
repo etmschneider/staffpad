@@ -1,7 +1,11 @@
 import pygame
 from numpy import *
+from time import time
 import MusicObjects as mus
 import Symbols
+
+# TODO: put this in a config/parameters file that can easily be changed.
+CLASSIFYTIMETHRESHOLD = 0.2
 
 def makeBackground(size):
 	"""
@@ -214,7 +218,9 @@ class StaffPad:
 
 		# drawing describes whether a shape is currently being captured, so that
 		# sepecial actions can be taken at the start and end of the gestures
-		drawing = 0;
+		drawing = 0
+		lastDrawTime = inf
+		waitToFinish = 0
 
 		# stores the coordinates of points along the drawn path
 		shape = [];
@@ -256,12 +262,17 @@ class StaffPad:
 				# Draw the corresponding line segment on the overlay
 				pygame.draw.line(self.overlay, pygame.Color("black"), (xPrev,yPrev), (xPos,yPos), int(self.radius*2))
 
-			# As soon as the button is lifted, classify the gesture, and add the
-			# object.
+			# As soon as the button is lifted, go into a waiting state for multi
+			# segment gestures to be classified.
 			elif drawing == 1:
 				# We are no longer drawing; turn off the flag
 				drawing = 0
+				waitToFinish = 1
+				lastDrawTime = time()
 
+			# classify the gesture, and add the object.
+			elif waitToFinish and time()-lastDrawTime > CLASSIFYTIMETHRESHOLD:
+				waitToFinish = 0
 				# classify the gesture into a shape
 				type = Symbols.classify(shape)
 
