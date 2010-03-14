@@ -44,7 +44,7 @@ def classify(shape):
 	# Pick appropriate templates using aspect ratio
 	# TODO: could size play a part here, too?
 	aspectRatios = [(5,5),(10,1)]
-	templates = [['dot','circle'],['vline']]
+	templates = [['dot','circle','sharp'],['vline']]
 	ratioScore = []
 	for ratio in aspectRatios:
 		wt = ratio[1]

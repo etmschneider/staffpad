@@ -6,8 +6,12 @@ it.
 import pygame
 import sys
 from numpy import *
+from time import time
 import MusicObjects
 import Symbols
+
+# TODO: put this into config file
+CLASSIFYTIMETHRESHOLD = 0.2
 
 def makeBackground(size):
 	"""
@@ -77,10 +81,12 @@ class Trainer:
 
 		# drawing describes whether a shape is currently being captured, so that
 		# sepecial actions can be taken at the start and end of the gestures
-		drawing = 0;
+		drawing = 0
+		lastDrawTime = inf
+		waitToFinish = 0
 
 		# stores the coordinates of points along the drawn path
-		shape = [];
+		shape = []
 
 		# Main loop for capturing input
 		looping = True
@@ -114,11 +120,17 @@ class Trainer:
 				# Draw the corresponding line segment on the overlay
 				pygame.draw.line(self.overlay, pygame.Color("black"), (xPrev,yPrev), (xPos,yPos), int(2))
 
-			# As soon as the button is lifted, classify the gesture, and add the
-			# object.
+			# As soon as the button is lifted, go into a waiting state for multi
+			# segment gestures to be classified/trained
 			elif drawing == 1:
 				# We are no longer drawing; turn off the flag
 				drawing = 0
+				waitToFinish = 1
+				lastDrawTime = time()
+
+			# classify/train the shape
+			elif waitToFinish and time()-lastDrawTime > CLASSIFYTIMETHRESHOLD:
+				waitToFinish = 0
 
 				if self.symbol == 'classify':
 					print Symbols.classify(shape)
@@ -143,7 +155,7 @@ class Trainer:
 		pygame.quit()
 
 
-if len(sys.argv) != 4 and (len(sys.argv) != 2 and sys.argv[1] == 'classify'):
+if len(sys.argv) != 4 and (len(sys.argv) != 2 or sys.argv[1] != 'classify'):
 	print "Usage:"
 	print "   python train.py symbol <width> <height>"
 	print " or"
