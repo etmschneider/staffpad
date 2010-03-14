@@ -12,6 +12,9 @@ TYPE_STEM = 4
 NOTE_FILLED = -1
 NOTE_EMPTY = -2
 
+ACC_FLAT = 0
+ACC_SHARP = 1
+
 BARLINE_NORMAL = 1
 
 class MusicObject:
@@ -137,6 +140,18 @@ class Barline(MusicObject):
 	def isUnder(self,point):
 		return self.rect.collidepoint(point)
 
+class Accidental(MusicObject):
+	"""
+	  The accidental object is a sharp or flat (or perhaps someday double,
+	  three quarters, etc.), and should be the child of a note.  It has no
+	  position, except that defined by its parent.
+	"""
+	def __init__(self,parent,type):
+		MusicObject.__init__(self,(0,0))
+		self.parent = parent
+		self.type = type
+		self.setRect()
+
 class Note(MusicObject):
 	"""
 	  The notehead object represents a single notehead.  It's parent is either a
@@ -163,7 +178,8 @@ class Note(MusicObject):
 		if self.parent.type == TYPE_STEM:
 			self.position[1] = parent.parent.whichLine(pos[1])
 			self.position[0] = side
-		self.setRect
+		self.setRect()
+		self.children = []
 
 	def setRect(self):
 		if self.parent.type == TYPE_STAFF:
@@ -204,6 +220,9 @@ class Note(MusicObject):
 		for line in range(6,int(self.position[1]/2)*2+2,2):
 			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
 			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
+
+		for child in self.children:
+			child.draw(canvas,scale)
 
 	def dist(self,point):
 		"""
