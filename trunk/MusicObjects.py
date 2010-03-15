@@ -81,7 +81,8 @@ class MusicObject:
 
 		# Now, deal with self
 		remove = False
-		if self.intersectPoint(point):
+		# Can't survive without children?
+		if self.intersectPoint(point) or (len(self._children) == 0 and self._cantSurviveWithoutChildren()):
 			remove = True
 		elif removedChildren:
 			self._reorg()
@@ -167,6 +168,13 @@ class MusicObject:
 			dy = min(self._rect.bottom - point[1],self._rect.top - point[1])
 		dx = self._position[0]-point[0]
 		return sqrt(dx*dx+dy*dy)
+
+	def _cantSurviveWithoutChildren(self):
+		"""
+		  This is a property of the particular class -- i.e., whether or not
+		  it should be removed when its children are all gone.
+		"""
+		return False
 
 class Staff(MusicObject):
 	"""
@@ -329,6 +337,8 @@ class Note(MusicObject):
 			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
 			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
 		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
+		for child in self._children:
+			child._setRect() #TODO: can we do this without calling private function?
 
 	def draw(self,canvas,scale):
 		if self._parent._type == TYPE_STAFF:
@@ -406,26 +416,10 @@ class Note(MusicObject):
 		# Adjust rectangle and position
 		self._setRectAndPos()
 
-#	def removeAt(self,point):
-#		removeMe = []
-#		for child in self._children:
-#			if child.intersectPoint(point):
-#				removeMe.append(child)
-
-#		for child in removeMe:
-#			self._children.remove(child)
-
-#		if self.intersectPoint(point):
-#			print "note needs to die!"
-
 	def addChild(self,child):
 		self._children.append(child)
 
 # TODO: remove commented functions!
-
-# TODO: figure out how to handle removals in thie hierarchy!
-
-# TODO: when recursively removing, don't remove yourself from parent -- it might be removing from a list while looping through.  Is this ok?  Is there a better way?
 
 # TODO: standard function order?
 
@@ -501,49 +495,28 @@ class Stem(MusicObject):
 		"""
 		return self._distVertLine()
 
-	# TODO: think about removeAt hierarchy
-#	def removeAt(self,point):
-#		"""
-#		  This is called if a stem or stemmed note collides with the given point
-#		  and has to be removed.
-#		"""
-#		removeMe = []
-#		for note in self._children:
-#			if note.intersectPoint(point):
-#				removeMe.append(note)
-#		for note in removeMe:
-#			self._children.remove(note)
+	# TODO: can we simplify this at all?
+	def _reorg(self):
+		# the base note is the lowest on the page (highest y)
+		if self._direction == 1:
+			maxPos = -inf
+			for note in self._children:
+				maxPos = max(note._line,maxPos)
+			self._length -= self._baseLine-maxPos
+			self._baseLine = maxPos
+		# the base note is the highest on the page (lowest y)
+		else:
+			minPos = inf
+			for note in self._children:
+				minPos = min(note._line,minPos)
+			self._length -= minPos-self._baseLine
+			self._baseLine = minPos
 
-#		for note in self._children:
-#			note.removeAt(point)
+		self._setRect()
+		self._clusterNotes()
 
-		# If we collide with the stem or have erased all the notes, delete the
-		# stem
-#		if self.intersectPoint(point) or len(self._children) == 0:
-#			self._parent.objects.removeChild(self)
-#			for note in self._children:
-#				note.stemToStaff()
-				# We do not need to delete the note from _children, because
-				# the stem is about to be deleted
 
-		# recompute stem location, length, and any clusters
-		"""		else:
-			# the base note is the lowest on the page (highest y)
-			if self._direction == 1:
-				maxPos = -inf
-				for note in self._children:
-					maxPos = max(note._line,maxPos)
-				self._length -= self._baseLine-maxPos
-				self._baseLine = maxPos
-			# the base note is the highest on the page (lowest y)
-			else:
-				minPos = inf
-				for note in self._children:
-					minPos = min(note._line,minPos)
-				self._length -= minPos-self._baseLine
-				self._baseLine = minPos
-			#clusters the remaining notes correctly
-			self._clusterNotes()"""
+	# TODO: keep track of stem's children notes in order
 
 	# TODO: move from bottom and top line rather than base and length?
 
@@ -582,6 +555,9 @@ class Stem(MusicObject):
 	def isStemUp(self):
 		return self._direction
 
+	def _cantSurviveWithoutChildren(self):
+		return True
+
 #TODO: consider eliminating these
 
 #def getClosest(objects,point,type = TYPE_ANY):
@@ -601,14 +577,3 @@ def getClosestStaff(staves,point):
 			dist = staff.dist(point)
 			best = staff
 	return best, dist
-	
-
-#def getObjectsIn(objects,rect,type = TYPE_ANY):
-#	"""
-#	  Return all objects of a given type that are in the given rectangle.
-#	"""
-#	inside = []
-#	for object in objects:
-#		if (type == TYPE_ANY or object.type == type) and object.isIn(rect):
-#			inside.append(object)
-#	return inside
