@@ -8,6 +8,7 @@ TYPE_STAFF = 1
 TYPE_NOTE = 2
 TYPE_BARLINE = 3
 TYPE_STEM = 4
+TYPE_ACCIDENTAL = 5
 # TODO: use __class__ attribute to check instead of TYPE
 
 NOTE_FILLED = -1
@@ -79,11 +80,11 @@ class MusicObject:
 	# TODO: does adding an optional "maxdepth" parameter make any sense?
 	# Recursively get anything that intersects the given point/rectangle
 	def recurseGetIntersectPoint(self,point,type=TYPE_ANY):
-		interectList = []
+		intersectList = []
 		if (self._type == type or type == TYPE_ANY) and self.intersectPoint(point):
 			intersectList.append(self)
 		for child in self._children:
-			intersectList += child.recurseGetIntersectPoint(self,point,type)
+			intersectList += child.recurseGetIntersectPoint(point,type)
 		return intersectList
 
 	def recurseGetIntersectRect(self,rect,type=TYPE_ANY):
@@ -215,6 +216,8 @@ class Barline(MusicObject):
 		"""
 		return self._distVerticalLine(point)
 
+# TODO: recursively setRects if needed
+
 # TODO: finish this class
 class Accidental(MusicObject):
 	"""
@@ -222,11 +225,29 @@ class Accidental(MusicObject):
 	  three quarters, etc.), and should be the child of a note.  It has no
 	  position, except that defined by its parent.
 	"""
-	def __init__(self,parent,type):
+	def __init__(self,parent,style):
 		MusicObject.__init__(self)
 		self._parent = parent
-		self._type = type
+		self._parent.addChild(self)
+		self._type = TYPE_ACCIDENTAL
+		self._style = style
 		self._setRect()
+
+	def _setRect(self):
+		self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
+
+	# TODO: make this shorter/prettier
+	def draw(self,canvas,scale):
+		w = self._rect.w
+		h = self._rect.h
+		t = self._rect.top
+		l = self._rect.left
+		b = self._rect.bottom
+		r = self._rect.right
+		pygame.draw.line(canvas,pygame.Color("black"),(l+w/3.0,t),(l+w/3.0,b),2)
+		pygame.draw.line(canvas,pygame.Color("black"),(l+w/1.5,t),(l+w/1.5,b),2)
+		pygame.draw.line(canvas,pygame.Color("black"),(l,h/3.0+t),(r,h/3.0+t),2)
+		pygame.draw.line(canvas,pygame.Color("black"),(l,h/1.5+t),(r,h/1.5+t),2)
 
 # TODO: should we put each class in its own file?
 
@@ -358,6 +379,9 @@ class Note(MusicObject):
 
 		if self.intersectPoint(point):
 			print "note needs to die!"
+
+	def addChild(self,child):
+		self._children.append(child)
 
 # TODO: figure out how to handle removals in thie hierarchy!
 
