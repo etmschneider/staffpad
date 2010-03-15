@@ -52,6 +52,48 @@ class MusicObject:
 	def dist(self,point):
 		return 0
 
+	def removeAt(self,point):
+		"""
+		  Remove any objects at the given point.  For notes, remove any accents
+		  or accidentals associated with them.  For barlines, simply remove the
+		  barline.  For stemmed notes: remove only the stem if the point is
+		  over the stem, only the note if it is over one note in a multi-note
+		  chord (readjusting stem length if necessary), and both if the point
+		  is over the notehead on a single note with stem.
+	
+		  Return value: a tuple, the first element is True if this object should
+		  be removed (from parent), and the second is True is some child was
+		  removed
+		"""
+		# First, recursively check all children
+		removedChildren = False
+		childrenToRemove = []
+		for child in self._children:
+			remove, removedChild = child.removeAt(point)
+			removedChildren = removedChildren or removedChild or remove
+			if remove:
+				childrenToRemove.append(child)
+
+		# Then, remove any children that should be removed.
+		for child in childrenToRemove:
+			self._children.remove(child)
+			self._adopt(child)
+
+		# Now, deal with self
+		remove = False
+		if self.intersectPoint(point):
+			remove = True
+
+		return remove, removedChildren
+
+	def _adopt(self,child):
+		"""
+		  This method should be overwritten for any object that should adopt
+		  children.  This means it will probably have to be case-by-case.  For
+		  example, staves will adopt notes (from stems), but nothing from notes
+		"""
+		pass
+
 	# These methods check for intersections between the object and a point or
 	# rectangle
 	def intersectPoint(self,point):
@@ -173,27 +215,6 @@ class Staff(MusicObject):
 	# to always do something when this is called)
 	def addChild(self,obj):
 		self._children.append(obj)
-
-	def removeAt(self,point):
-		"""
-		  Remove any objects at the given point.  For notes, remove any accents
-		  or accidentals associated with them.  For barlines, simply remove the
-		  barline.  For stemmed notes: remove only the stem if the point is
-		  over the stem, only the note if it is over one note in a multi-note
-		  chord (readjusting stem length if necessary), and both if the point
-		  is over the notehead on a single note with stem.
-	
-		  Return value is True if objects were removed, false if not.
-		"""
-		print "removing temporarily disabled"
-		# TODO: with removing: what if you always return true if you were
-		# removed, and false otherwise?  And just higher up, everything gets
-		# redrawn?  Or return CHILD, NONE, or SELF, and make some OR thing work?
-		return False
-		removed = False
-		for object in self._children:
-			removed = object.removeAt(point) or removed
-		return removed
 
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
@@ -324,7 +345,9 @@ class Note(MusicObject):
 		  The distance function here will return the distance, in page
 		  coordinates, to the edge of the note
 		"""
-		return max(sqrt(self._x*self._x+self._y*self._y)-STAFFSPACING/2.0,0)
+		x = self._x-point[0]
+		y = self._y-point[1]
+		return max(sqrt(x*x+y*y)-STAFFSPACING/2.0,0)
 
 	def intersectPoint(self,point):
 		return self.dist(point) == 0
@@ -368,20 +391,22 @@ class Note(MusicObject):
 		# Adjust rectangle and position
 		self._setRectAndPos()
 
-	def removeAt(self,point):
-		removeMe = []
-		for child in self._children:
-			if child.intersectPoint(point):
-				removeMe.append(child)
+#	def removeAt(self,point):
+#		removeMe = []
+#		for child in self._children:
+#			if child.intersectPoint(point):
+#				removeMe.append(child)
 
-		for child in removeMe:
-			self._children.remove(child)
+#		for child in removeMe:
+#			self._children.remove(child)
 
-		if self.intersectPoint(point):
-			print "note needs to die!"
+#		if self.intersectPoint(point):
+#			print "note needs to die!"
 
 	def addChild(self,child):
 		self._children.append(child)
+
+# TODO: remove commented functions!
 
 # TODO: figure out how to handle removals in thie hierarchy!
 
@@ -462,32 +487,32 @@ class Stem(MusicObject):
 		return self._distVertLine()
 
 	# TODO: think about removeAt hierarchy
-	def removeAt(self,point):
-		"""
-		  This is called if a stem or stemmed note collides with the given point
-		  and has to be removed.
-		"""
-		removeMe = []
-		for note in self._children:
-			if note.intersectPoint(point):
-				removeMe.append(note)
-		for note in removeMe:
-			self._children.remove(note)
+#	def removeAt(self,point):
+#		"""
+#		  This is called if a stem or stemmed note collides with the given point
+#		  and has to be removed.
+#		"""
+#		removeMe = []
+#		for note in self._children:
+#			if note.intersectPoint(point):
+#				removeMe.append(note)
+#		for note in removeMe:
+#			self._children.remove(note)
 
-		for note in self._children:
-			note.removeAt(point)
+#		for note in self._children:
+#			note.removeAt(point)
 
 		# If we collide with the stem or have erased all the notes, delete the
 		# stem
-		if self.intersectPoint(point) or len(self._children) == 0:
-			self._parent.objects.removeChild(self)
-			for note in self._children:
-				note.stemToStaff()
+#		if self.intersectPoint(point) or len(self._children) == 0:
+#			self._parent.objects.removeChild(self)
+#			for note in self._children:
+#				note.stemToStaff()
 				# We do not need to delete the note from _children, because
 				# the stem is about to be deleted
 
 		# recompute stem location, length, and any clusters
-		else:
+		"""		else:
 			# the base note is the lowest on the page (highest y)
 			if self._direction == 1:
 				maxPos = -inf
@@ -503,7 +528,7 @@ class Stem(MusicObject):
 				self._length -= minPos-self._baseLine
 				self._baseLine = minPos
 			#clusters the remaining notes correctly
-			self._clusterNotes()
+			self._clusterNotes()"""
 
 	# TODO: move from bottom and top line rather than base and length?
 
