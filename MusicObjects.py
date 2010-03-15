@@ -77,20 +77,29 @@ class MusicObject:
 		# Then, remove any children that should be removed.
 		for child in childrenToRemove:
 			self._children.remove(child)
-			self._adopt(child)
+			self._adoptFrom(child)
 
 		# Now, deal with self
 		remove = False
 		if self.intersectPoint(point):
 			remove = True
+		elif removedChildren:
+			self._reorg()
 
 		return remove, removedChildren
 
-	def _adopt(self,child):
+	def _adoptFrom(self,oldParent):
 		"""
 		  This method should be overwritten for any object that should adopt
 		  children.  This means it will probably have to be case-by-case.  For
 		  example, staves will adopt notes (from stems), but nothing from notes
+		"""
+		pass
+
+	def _reorg(self):
+		"""
+		  This method is called at the end of the remove cycle, if it is
+		  necessary to reorganize (when children have been removed).
 		"""
 		pass
 
@@ -215,6 +224,11 @@ class Staff(MusicObject):
 	# to always do something when this is called)
 	def addChild(self,obj):
 		self._children.append(obj)
+
+	def _adoptFrom(self,oldParent):
+		if oldParent._type == TYPE_STEM:
+			for child in oldParent._children:
+				child.stemToStaff()
 
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
@@ -349,6 +363,10 @@ class Note(MusicObject):
 		y = self._y-point[1]
 		return max(sqrt(x*x+y*y)-STAFFSPACING/2.0,0)
 
+# TODO: add adopts (for staff)
+# TODO: cleanup stem lenght
+
+
 	def intersectPoint(self,point):
 		return self.dist(point) == 0
 
@@ -367,13 +385,10 @@ class Note(MusicObject):
 		self._setRectAndPos()
 
 	def stemToStaff(self):
-		"""
-		  NOTE: called by stem only
-		"""
 		# reset x-position (absolute instead of side)
-		self._xpos = self._parent._xpos + (STAFFSPACING/2.0)*note._xpos;
+		self._xpos = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos;
 
-		# change ownership (owned by noone who called this)
+		# change ownership (owned by no-one)
 		self._parent = self._parent._parent
 		self._parent.addChild(self)
 
