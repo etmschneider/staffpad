@@ -49,11 +49,12 @@ class Page:
 		"""
 		  This function removes any object that is underneath the given point.
 		"""
+		redraw = False
 		for staff in self.staves:
 			# redraw if objects are removed
-			if staff.removeAt(point):
-				self.pad.redraw()
-			# TODO: could only redraw once to make things faster
+			remStaff,remChild = staff.removeAt(point)
+			redraw = redraw or remChild
+		self.pad.redraw()
 
 	def addObject(self,type,rect):
 		"""
