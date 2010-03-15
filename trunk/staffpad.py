@@ -42,7 +42,7 @@ class Page:
 
 		# Initialize the page with four staves
 		for i in range(4):
-			s = mus.Staff((0,100*i+110),self.pad.pageSize[0])
+			s = mus.Staff(self.pad.pageSize[0],100*i+110)
 			self.staves.append(s)
 
 	def removeObjectAtPoint(self,point):
@@ -53,6 +53,7 @@ class Page:
 			# redraw if objects are removed
 			if staff.removeAt(point):
 				self.pad.redraw()
+			# TODO: could only redraw once to make things faster
 
 	def addObject(self,type,rect):
 		"""
@@ -68,7 +69,7 @@ class Page:
 			center = (0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1]))
 
 			# get closest staff to attach note to
-			staff, dist = mus.getClosest(self.staves,center)
+			staff, dist = mus.getClosestStaff(self.staves,center)
 
 			# make note object
 			if type == 'dot':
@@ -82,12 +83,31 @@ class Page:
 			# If there is a stem close, attach note to it
 			# TODO: do this before staff logic (modify MusicObject stem code
 			# to allow this)
-			stem, dist = mus.getClosest(staff.objects,center,mus.TYPE_STEM)
-			if dist < mus.STAFFSPACING*0.75:
-				stem.addNotes((n,))
+			# TODO: pick other than first? pick closest instead?
+			closeStems = staff.recurseGetIntersectRect(n._rect,mus.TYPE_STEM)
+			if len(closeStems) != 0:
+				closeStems[0].addNotes([n])
 
 			# Redraw (necessary because note may affect other clustered notes)
 			self.pad.redraw()
+
+		elif type == 'sharp':
+#			centerOffset = [0.5*(rect[0][0]+rect[1][0])+mus.STAFFSPACING*1.5,0.5*(rect[0][1]+rect[1][1])]
+
+#			# get closest staff on which to attach sharp to note
+#			staff, dist = mus.getClosest(self.staves,centerOffset)
+
+#			note, dist = mus.getClosest(staff.objects,centerOffset,mus.TYPE_NOTE)
+#			print centerOffset
+#			print dist
+
+#			# Get note just to the right of this sharp.
+#			if dist < mus.STAFFSPACING*0.5:
+#				print "attaching sharp to note"
+#			else:
+#				print "nowhere to put sharp!"
+			print "detected sharp"
+			# TODO: finish above code
 
 		elif type == 'vline':
 			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
@@ -97,34 +117,38 @@ class Page:
 			left = rect[0][0]
 
 			# Find the closest staff
-			staff, dist = mus.getClosest(self.staves,center)
+			staff, dist = mus.getClosestStaff(self.staves,center)
 
 			# Find the lines which the line starts and ends at
 			endlines = [staff.whichLine(top),staff.whichLine(bottom)]
 
-			# Find the closest notes to the top and bottom of the line
-			topNote, topDist = mus.getClosest(staff.objects,(right,top),mus.TYPE_NOTE)
-			botNote, botDist = mus.getClosest(staff.objects,(left,bottom),mus.TYPE_NOTE)
+			print "detected vertical line"
+
+			# TODO: add all notes, and have stem sort it out?
+			# TODO: choose closest for base?
+			r = mus.STAFFSPACING*0.25
+			closeTopNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,top-r,2*r,2*r),mus.TYPE_NOTE)
+			closeBotNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,bottom-r,2*r,2*r),mus.TYPE_NOTE)
 
 			# If the vertical line's top or bottom is close to a note,
-			# then we make it a stem of that note, giving preference
+			# then we make it a stem of that note, TODO: giving preference
 			# to the closest note (bottom if they are equal)
-			if min(botDist,topDist) < mus.STAFFSPACING*0.75:
+			if len(closeBotNotes) > 0 or len(closeTopNotes) > 0:
 				stemLen = abs(endlines[0]-endlines[1])
-				if botDist <= topDist:
-					stem = mus.Stem((center[0],botNote.position[1]),
-					                         staff,stemLen,1,[botNote])
+				if len(closeBotNotes) > 0:
+					stem = mus.Stem((center[0],closeBotNotes[0]._line),
+					                staff,stemLen,1,[closeBotNotes[0]])
 				else:
-					stem = mus.Stem((center[0],topNote.position[1]),
-					                         staff,stemLen,-1,[topNote])
+					stem = mus.Stem((center[0],closeTopNotes[0]._line),
+					                staff,stemLen,-1,[closeTopNotes[0]])
 
 				# Add the object to the staff
 				staff.addObject(stem)
 
 				# Find any other notes within range of the stem and attach them
-				area = [[center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen],[center[0]+mus.STAFFSPACING*0.25,center[1]+stemLen]]
+				area = pygame.Rect(center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen*0.5,mus.STAFFSPACING*0.5,stemLen)
 
-				chordNotes = mus.getObjectsIn(staff.objects,area,mus.TYPE_NOTE)
+				chordNotes = staff.recurseGetIntersectRect(area,mus.TYPE_NOTE)
 				stem.addNotes(chordNotes)
 
 				# Redraw
@@ -134,13 +158,13 @@ class Page:
 			# at the staff's top and bottom line
 			# TODO: Change these values to a staff constant, based on 
 			# staff type
-			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
-				barline = mus.Barline(center[0],staff)
-				# draw barline
-				staff.addObject(barline)
-				barline.draw(self.pad.background,self.pad.zoom);
-			else:
-				print "unrecognized vertical line"
+#			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
+#				barline = mus.Barline(center[0],staff)
+#				# draw barline
+#				staff.addObject(barline)
+#				barline.draw(self.pad.background,self.pad.zoom);
+#			else:
+#				print "unrecognized vertical line"
 		else:
 			print "unhandled shape"
 

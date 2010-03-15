@@ -8,6 +8,7 @@ TYPE_STAFF = 1
 TYPE_NOTE = 2
 TYPE_BARLINE = 3
 TYPE_STEM = 4
+# TODO: use __class__ attribute to check instead of TYPE
 
 NOTE_FILLED = -1
 NOTE_EMPTY = -2
@@ -17,6 +18,19 @@ ACC_SHARP = 1
 
 BARLINE_NORMAL = 1
 
+"""
+Note that some variables are preceeded with an underscore.  These,
+while not explicitly "private" (not modifiable even by inherited classes) or
+"protected" (not supported in python), are intended to only be written to by the
+object which they belong to.  If you find yourself needing to modify
+one of these private variables, then thought should be put into (a) doing it a
+different (and possibly more appropriate) way, or (b) redesigning the structure
+of this code so that is allows you to do what you want in a "nice" way.
+
+Similarly, methods proceeded by an underscore should only be called by methods
+of that object
+"""
+
 class MusicObject:
 	"""
 	  A base class for musical objects (WITH semantic meaning; i.e., not just a
@@ -24,46 +38,97 @@ class MusicObject:
 	  base class just acts like a single point with no meaning, and should not
 	  be used by itself.
 	"""
-	def __init__(self,pos):
-		self.position = list(pos)
-		self.type = TYPE_NONE
-		self.rect = pygame.Rect(0,0,0,0)
+	def __init__(self):
+		self._type = TYPE_NONE
+		self._rect = pygame.Rect(0,0,0,0)
+		self._parent = None
+		self._children = []
+
 	def draw(self,canvas,scale):
 		pass
+
+	# TODO: can we get rid of distance functions?
 	def dist(self,point):
-		return sqrt(pow(self.position[0]-point[0],2)+pow(self.position[1]-point[1],2))
-	def dist2(self,point):
-		"""
-		  Returns the horizontal and vertical distances from the object to the
-		  given point.  Should return signed distances.
-		"""
-		return [self.position[0]-points[0],self.position[1]-point[1]]
-	def isUnder(self,point):
-		"""
-		  This function determines whether the given point is over the object,
-		  which is useful, for example, in determining whether to erase it.
-		"""
+		return 0
+
+	# These methods check for intersections between the object and a point or
+	# rectangle
+	def intersectPoint(self,point):
+		return self._rect.collidepoint(point)
+
+	def intersectRect(self,rect):
+		return self._rect.colliderect(rect)
+
+	# The following methods are recursive; i.e., they check all children as well
+	def recurseIntersectPoint(self,point):
+		if self.intersectPoint(point):
+			return True
+		for child in self._children:
+			if child.recurseIntersectPoint(point):
+				return True
 		return False
-	def isIn(self,rect):
+
+	def recurseIntersectRect(self,rect):
+		if self.intersectRect(rect):
+			return True
+		for child in self._children:
+			if child.recurseIntersectRect(rect):
+				return True
+		return False
+
+	# TODO: does adding an optional "maxdepth" parameter make any sense?
+	# Recursively get anything that intersects the given point/rectangle
+	def recurseGetIntersectPoint(self,point,type=TYPE_ANY):
+		interectList = []
+		if (self._type == type or type == TYPE_ANY) and self.intersectPoint(point):
+			intersectList.append(self)
+		for child in self._children:
+			intersectList += child.recurseGetIntersectPoint(self,point,type)
+		return intersectList
+
+	def recurseGetIntersectRect(self,rect,type=TYPE_ANY):
+		intersectList = []
+		if (self._type == type or type == TYPE_ANY) and self.intersectRect(rect):
+			intersectList.append(self)
+		for child in self._children:
+			intersectList += child.recurseGetIntersectRect(rect,type)
+		return intersectList
+
+	# The following methods return attributes
+	def type(self):
+		return self._type
+
+# TODO: what about all "_" variables just being read-only?  How about all
+# class variables be read-only?  Then we don't have to mess with "_"...
+
+	# TODO: do we even need distance functions?  Should they be recursive?
+	# These are utitily functions for the MusicObject to use in its internal
+	# methods, i.e. calculating distance
+	def _distVertLine(self,point):
 		"""
-		  This functions returns 1 if some part of the object is within the
-		  given rectangle.
+		  This function computes the distance to a vertical line centered at
+		  the x position and with top and bottom equal to the object's rect.
 		"""
-		return (rect[0][0] < self.position[0] < rect[1][0]) and (rect[0][1] < self.position[1] < rect[1][1])
+		if self._rect.top <= point[1] <= self._rect.bottom:
+			dy = 0
+		else:
+			dy = min(self._rect.bottom - point[1],self._rect.top - point[1])
+		dx = self._position[0]-point[0]
+		return sqrt(dx*dx+dy*dy)
 
 class Staff(MusicObject):
 	"""
 	  Staves are the base object that is drawn on the page.  They contain notes,
 	  clefs, and various other musical symbols, and most other markings are
-	  children of a staff.
+	  descendents of a staff.
 	"""
-	def __init__(self,pos,width):
-		MusicObject.__init__(self,pos)
-		self.width = width
-		self.type = TYPE_STAFF
-		self.objects = []
+	def __init__(self,width,ypos):
+		MusicObject.__init__(self)
+		self._yMiddle = ypos
+		self._width = width
+		self._type = TYPE_STAFF # TODO: is this redundant with the class name?
 		height = STAFFSPACING*4.0
-		self.rect = pygame.Rect(pos[0],pos[1]-height/2.0,width,height)
+		self._rect = pygame.Rect(0,ypos-height/2.0,width,height)
 
 	def draw(self,canvas,scale):
 		"""
@@ -71,30 +136,42 @@ class Staff(MusicObject):
 		"""
 		# Draw staff
 		for i in [-2,-1,0,1,2]:
-			h = int((i*STAFFSPACING+self.position[1])*scale)
-			pygame.draw.line(canvas, BLACK, (0,h), (self.width,h), int(1.0*scale))
+			h = int((i*STAFFSPACING+self._yMiddle))
+			pygame.draw.line(canvas, BLACK, (0,h), (self._width,h), int(1.0))
+
 		# Draw children
-		for obj in self.objects:
+		for obj in self._children:
 			obj.draw(canvas,scale)
 
-	# For staves, "distance" is just the vertical distance to the center
 	def dist(self,point):
-		return abs(self.position[1]-point[1])
+		"""
+		  For staves, "distance" is just the vertical distance to the center
+		"""
+		return abs(self._yMiddle-point[1])
 
-	def dist2(self,points):
-		return [0,self.position[1]-point[1]]
-
-	# This function returns the closest line the the given point (with zero
-	# being the center of the staff)
 	def whichLine(self,y):
-		return int(round(2.0*(y - self.position[1])/(STAFFSPACING)))
+		"""
+		  Returns the closest line to the given point (with zero being the
+		  center of the staff)
+		"""
+		return int(round(2.0*(y - self._yMiddle)/(STAFFSPACING)))
 
-	# These remaining functions add notes and other objects to the list of
-	# children of the staff.
-	def addNote(self,note):
-		self.objects.append(note)
+	# TODO: do we need this?  we can access children directly!
 	def addObject(self,obj):
-		self.objects.append(obj)
+		self._children.append(obj)
+
+	# TODO: do we need this?  we can access children directly!
+	def addNote(self,obj):
+		self._children.append(obj)
+
+	# TODO: do we need this?  we can access children directly!
+	def removeChild(self,object):
+		self._children.remove(object)
+
+	# TODO: ditto (probably better to have accessors, though, in case we want
+	# to always do something when this is called)
+	def addChild(self,obj):
+		self._children.append(obj)
 
 	def removeAt(self,point):
 		"""
@@ -107,39 +184,38 @@ class Staff(MusicObject):
 	
 		  Return value is True if objects were removed, false if not.
 		"""
+		print "removing temporarily disabled"
+		# TODO: with removing: what if you always return true if you were
+		# removed, and false otherwise?  And just higher up, everything gets
+		# redrawn?  Or return CHILD, NONE, or SELF, and make some OR thing work?
+		return False
 		removed = False
-		for object in self.objects:
-			if object.isUnder(point):
-				# Remove free notes and barlines
-				if object.type == TYPE_NOTE or object.type == TYPE_BARLINE:
-					self.objects.remove(object)
-					removed = True
-				# Remove notes from stem or stem from notes (or both)
-				if object.type == TYPE_STEM:
-					object.removeAt(point)
-					removed = True
+		for object in self._children:
+			removed = object.removeAt(point) or removed
 		return removed
 
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
-		MusicObject.__init__(self,(xpos,0))
-		self.parent = parent
+		MusicObject.__init__(self)
+		self._parent = parent
 		# For barlines, the horizontal distance is all that matters
-		self.position = (xpos,0);
-		self.type = TYPE_BARLINE
-		self.style = BARLINE_NORMAL
-		self.rect = pygame.Rect(xpos-1,self.parent.rect.top,2,self.parent.rect.h)
+		self._xpos = xpos;
+		self._type = TYPE_BARLINE
+		self._style = BARLINE_NORMAL
+		self._rect = pygame.Rect(xpos-1,self._parent._rect.top,2,STAFFSPACING*4.0)
 	def draw(self,canvas,scale):
-		x = self.position[0]
-		t = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*(-4))
-		b = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*(4))
+		x = self._xpos
+		t = self._rect.top
+		b = self._rect.bottom
 		pygame.draw.line(canvas,pygame.Color("black"),(x,t),(x,b),2)
-	# For barlines, distance is the horizontal distance to the line
-	def dist(self,point):
-		return abs(self.position[0]-point[0])
-	def isUnder(self,point):
-		return self.rect.collidepoint(point)
 
+	def dist(self,point):
+		"""
+		  For barlines, distance is the minimum distance to the barline
+		"""
+		return self._distVerticalLine(point)
+
+# TODO: finish this class
 class Accidental(MusicObject):
 	"""
 	  The accidental object is a sharp or flat (or perhaps someday double,
@@ -147,10 +223,12 @@ class Accidental(MusicObject):
 	  position, except that defined by its parent.
 	"""
 	def __init__(self,parent,type):
-		MusicObject.__init__(self,(0,0))
-		self.parent = parent
-		self.type = type
-		self.setRect()
+		MusicObject.__init__(self)
+		self._parent = parent
+		self._type = type
+		self._setRect()
+
+# TODO: should we put each class in its own file?
 
 class Note(MusicObject):
 	"""
@@ -168,96 +246,130 @@ class Note(MusicObject):
 	  In either case, the y position is the line or space number of the staff
 	  that is either its parent or grandparent.
 	"""
-	def __init__(self,pos,parent,length,side=-1):
-		MusicObject.__init__(self,pos)
-		self.length = length
-		self.parent = parent
-		self.type = TYPE_NOTE
-		if self.parent.type == TYPE_STAFF:
-			self.position[1] = parent.whichLine(pos[1])
-		if self.parent.type == TYPE_STEM:
-			self.position[1] = parent.parent.whichLine(pos[1])
-			self.position[0] = side
-		self.setRect()
-		self.children = []
 
-	def setRect(self):
-		if self.parent.type == TYPE_STAFF:
-			x = self.position[0]
-			y = self.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]
-		elif self.parent.type == TYPE_STEM:
-			side = self.position[0]
-			x = self.parent.position[0] + (STAFFSPACING/2.0)*scale*side;
-			y = self.parent.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]
-		self.rect = pygame.Rect(x-STAFFSPACING/2.0,y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
+	#TODO: standardize init function param order
+	def __init__(self,pos,parent,length):
+		MusicObject.__init__(self)
+		self._length = length #TODO: call this style, not length!
+		self._parent = parent
+		self._type = TYPE_NOTE
+		if parent._type == TYPE_STAFF:
+			self._line = parent.whichLine(pos[1])
+		if parent._type == TYPE_STEM:
+			self._line = parent.parent.whichLine(pos[1])
+		self._xpos = pos[0] # Absolute pos for free, side of stem for stemmed
+		self._setRectAndPos()
+
+	def _setRectAndPos(self):
+		"""
+		  This function, which should be called anytime the note is moved on
+		  the page, sets the note's page-rectangle (for collision purposes) and
+		  page-coordinate center position
+		"""
+		if self._parent.type() == TYPE_STAFF:
+			self._x = self._xpos
+			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		elif self._parent.type() == TYPE_STEM:
+			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
+			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
 
 	def draw(self,canvas,scale):
-		"""
-		  Because the x and y positions have different semantic meanings if the
-		  parent is a staff or a stem, these cases are handled differently here
-		"""
-		if self.parent.type == TYPE_STAFF:
-			x = int(self.position[0])
-			y = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
-			staffMiddle = self.parent.position[1]
-		elif self.parent.type == TYPE_STEM:
-			side = self.position[0]
-			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*scale*side);
-			y = self.parent.parent.position[1] + int((STAFFSPACING/2.0)*scale*self.position[1])
-			staffMiddle = self.parent.parent.position[1]
+		if self._parent._type == TYPE_STAFF:
+			staffMiddle = self._parent._yMiddle
+		elif self._parent._type == TYPE_STEM:
+			staffMiddle = self._parent._parent._yMiddle
 
-		if self.length == NOTE_FILLED:
-			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8)
-		elif self.length == NOTE_EMPTY:
-			pygame.draw.circle(canvas,pygame.Color("black"),[x,y], 8, 2)
+		if self._length == NOTE_FILLED:
+			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._x)),int(round(self._y))], int(round(STAFFSPACING/2.0)))
+		elif self._length == NOTE_EMPTY:
+			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._x)),int(round(self._y))], int(round(STAFFSPACING/2.0)), 2)
 
 		# Draw ledger lines if the note is...
 		# ...above the staff, or...
-		for line in range(int(ceil(self.position[1]/2.))*2,-4,2):
+		for line in range(int(ceil(self._line/2.))*2,-4,2):
 			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
-			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
+			pygame.draw.line(canvas, BLACK, (self._x-(STAFFSPACING/1.5)*scale,h), (self._x+(STAFFSPACING/1.5),h), int(1.0))
 		# below the staff
-		for line in range(6,int(self.position[1]/2)*2+2,2):
+		for line in range(6,int(self._line/2)*2+2,2):
 			h = int((staffMiddle+(line/2)*STAFFSPACING)*scale)
-			pygame.draw.line(canvas, BLACK, (x-(STAFFSPACING/1.5)*scale,h), (x+(STAFFSPACING/1.5),h), int(1.0*scale))
+			pygame.draw.line(canvas, BLACK, (self._x-(STAFFSPACING/1.5)*scale,h), (self._x+(STAFFSPACING/1.5),h), int(1.0))
 
-		for child in self.children:
+		for child in self._children:
 			child.draw(canvas,scale)
 
 	def dist(self,point):
 		"""
 		  The distance function here will return the distance, in page
-		  coordinates, to the center of the note.
+		  coordinates, to the edge of the note
 		"""
-		if self.parent.type == TYPE_STAFF:
-			x = self.position[0]-point[0]
-			y = self.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]-point[1]
-		elif self.parent.type == TYPE_STEM:
-			side = self.position[0]
-			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*side)-point[0]
-			y = self.parent.parent.position[1] + (STAFFSPACING/2.0)*self.position[1]-point[1]
-		return sqrt(x*x+y*y)
-	def isUnder(self,point):
-		return self.dist(point) < (STAFFSPACING/2.0)
-	def isIn(self,rect):
-		"""
-		  This is actually just a (close) approximation, for computational
-		  efficiency.  To figure out whether an object is in another, you can
-		  check whether a point is in the minkowski sum.  In this case, we
-		  instead just expand the rectangle by the note radius, and check the
-		  center position of the note, which gives (a small number of) false
-		  positives at the corners.
-		"""
-		# Get x and y in page coordinates		
-		if self.parent.type == TYPE_STAFF:
-			x = int(self.position[0])
-			y = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
-		elif self.parent.type == TYPE_STEM:
-			side = self.position[0]
-			x = int(self.parent.position[0] + (STAFFSPACING/2.0)*side);
-			y = self.parent.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
+		return max(sqrt(self._x*self._x+self._y*self._y)-STAFFSPACING/2.0,0)
 
-		return ((rect[0][0]-STAFFSPACING*0.5) < x < (rect[1][0]+STAFFSPACING*0.5)) and ((rect[0][1]-STAFFSPACING*0.5) < y < (rect[1][1]+STAFFSPACING*0.5))
+	def intersectPoint(self,point):
+		return self.dist(point) == 0
+
+	def staffToStem(self,stem):
+		"""
+		  NOTE: called by stem only
+		"""
+		# reset x-position
+		self._xpos = -stem.isStemUp()
+
+		# change ownership (already owned by stem who called this)
+		self._parent.removeChild(self)
+		self._parent = stem
+
+		# Adjust rectangle and position
+		self._setRectAndPos()
+
+	def stemToStaff(self):
+		"""
+		  NOTE: called by stem only
+		"""
+		# reset x-position (absolute instead of side)
+		self._xpos = self._parent._xpos + (STAFFSPACING/2.0)*note._xpos;
+
+		# change ownership (owned by noone who called this)
+		self._parent = self._parent._parent
+		self._parent.addChild(self)
+
+		# Adjust rectangle and position
+		self._setRectAndPos()
+
+	def setSide(self,side):
+		"""
+		  If the note's parent is a stem, set which side of the stem it is on.
+		  This method should not be called if the parent is not a stem.
+		"""
+		# TODO: debug here: if we not parented by a stem, say something
+		self._xpos = side
+
+		# Adjust rectangle and position
+		self._setRectAndPos()
+
+	def removeAt(self,point):
+		removeMe = []
+		for child in self._children:
+			if child.intersectPoint(point):
+				removeMe.append(child)
+
+		for child in removeMe:
+			self._children.remove(child)
+
+		if self.intersectPoint(point):
+			print "note needs to die!"
+
+# TODO: figure out how to handle removals in thie hierarchy!
+
+# TODO: when recursively removing, don't remove yourself from parent -- it might be removing from a list while looping through.  Is this ok?  Is there a better way?
+
+# TODO: standard function order?
+
+# TODO: debug warnings?
+
+# TODO: change all comments? shorter style?
+
+# TODO: consider eliminating position, and just using rectangle center?
 
 class Stem(MusicObject):
 	"""
@@ -272,180 +384,167 @@ class Stem(MusicObject):
 	  page, and the y position is the line or space at which the stem begins.
 	"""
 	def __init__(self,pos,parent,length,direction,children):
-		MusicObject.__init__(self,pos)
+		MusicObject.__init__(self)
 		# -1 represents a down stem, +1 represents an up stem. 
-		self.direction = direction
+		self._direction = direction
 		# The length of the stem, in number of lines and spaces
-		self.length = length
+		self._length = length
 		# The note or notes that this stem attaches to.
-		self.notes = children
+		self._children = children
 		# The parent staff which this stem belongs to.
-		self.parent = parent
-		self.type = TYPE_STEM
+		self._parent = parent
+		self._type = TYPE_STEM
+		self._xpos = pos[0]
+		self._baseLine = pos[1]
 
-		# During initialization, the stem must set parameters of its new
-		# children, and remove them from the staff's set of children
-		for note in self.notes:
-			# Set the x position of the notes.  In general, this is the left
-			# side for up-stems, and the left side for down-stems.
-			#TODO figure out logic for determing stem side for clusters of notes
-			note.position[0] = -self.direction
+		for note in self._children:
+			note.staffToStem(self)
 
-			# Remove the note from its parent staff
-			note.parent.objects.remove(note)
+		self._setRect()
+		self._clusterNotes()
 
-			# Change the note's parent to this stem
-			note.parent = self
-		self.setRect()
-		self.clusterNotes()
+	# TODO: change all xpos and ypos to xPos and yPos? consistency!
 
-	def setRect(self):
-		x = self.position[0]
-		yTop = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
+	def _setRect(self):
+		x = self._xpos
+		yTop = self._parent._yMiddle + int((STAFFSPACING/2.0)*self._baseLine)
 		yBot = yTop
-		if self.direction == 1:
-			yTop -= self.length*STAFFSPACING/2.0
+		if self._direction == 1:
+			yTop -= self._length*STAFFSPACING/2.0
 		else:
-			yBot += self.length*STAFFSPACING/2.0
-		self.rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
+			yBot += self._length*STAFFSPACING/2.0
+		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
 
-	def addNotes(self,notes):
-		for note in notes:
-			# Add new notes to the stem's list of notes, and remove from the
-			# list of their previous parent
-			self.notes.append(note)
-			note.parent.objects.remove(note)
+	def addNotes(self,children):
+		for note in children:
+			self._children.append(note)
+			note.staffToStem(self)
 
-			# Set the x position of the notes.  In general, this is the left
-			# side for up-stems, and the left side for down-stems.
-			note.position[0] = -self.direction
-
-			# Change the note's parent to this stem
-			note.parent = self
-		self.clusterNotes()
+		self._clusterNotes()
 
 	def draw(self,canvas,scale):
-		for note in self.notes:
+		for note in self._children:
 			note.draw(canvas,scale)
-		x = self.position[0]
-		line = self.position[1]
-		base = self.parent.position[1] + int((STAFFSPACING/2.0)*scale*(line))
-		end = base-scale*STAFFSPACING/2.0*self.length*self.direction
-		pygame.draw.line(canvas,pygame.Color("black"),(x,base),(x,end),2)
+		x = self._xpos
+		t = self._rect.top
+		b = self._rect.bottom
+		pygame.draw.line(canvas,pygame.Color("black"),(x,t),(x,b),2)
 
 	def dist(self,point):
 		"""
 		  The distance function here will return the distance, in page
 		  coordinates, to the closest part of the stem.
 		"""
-		x = self.position[0]-point[0]
-		yTop = self.parent.position[1] + int((STAFFSPACING/2.0)*self.position[1])
-		yBot = yTop
-		if self.direction == 1:
-			yTop -= self.length*STAFFSPACING/2.0
-		else:
-			yBot += self.length*STAFFSPACING/2.0
-		if yTop < point[1] < yBot:
-			y = 0
-		else:
-			y = min(abs(point[1] - yTop),abs(point[1] - yBot))
+		return self._distVertLine()
 
-		return sqrt(x*x+y*y)
-
-	def isUnder(self,point):
-		"""
-		  Is any part of the stem or connected notes under the given point?
-		"""
-		if self.rect.collidepoint(point):
-			return True
-		for note in self.notes:
-			if note.isUnder(point):
-				return True
-		return False
-
+	# TODO: think about removeAt hierarchy
 	def removeAt(self,point):
 		"""
 		  This is called if a stem or stemmed note collides with the given point
 		  and has to be removed.
 		"""
 		removeMe = []
-		for note in self.notes:
-			if note.isUnder(point):
+		for note in self._children:
+			if note.intersectPoint(point):
 				removeMe.append(note)
 		for note in removeMe:
-			self.notes.remove(note)
+			self._children.remove(note)
+
+		for note in self._children:
+			note.removeAt(point)
 
 		# If we collide with the stem or have erased all the notes, delete the
 		# stem
-		if self.rect.collidepoint(point) or len(self.notes) == 0:
-			self.parent.objects.remove(self)
-			for note in self.notes:
-				self.parent.objects.append(note)
-				note.parent = self.parent
-				note.position[0] = self.position[0] + (STAFFSPACING/2.0)*note.position[0];
+		if self.intersectPoint(point) or len(self._children) == 0:
+			self._parent.objects.removeChild(self)
+			for note in self._children:
+				note.stemToStaff()
+				# We do not need to delete the note from _children, because
+				# the stem is about to be deleted
+
 		# recompute stem location, length, and any clusters
 		else:
 			# the base note is the lowest on the page (highest y)
-			if self.direction == 1:
+			if self._direction == 1:
 				maxPos = -inf
-				for note in self.notes:
-					maxPos = max(note.position[1],maxPos)
-				self.length -= self.position[1]-maxPos
-				self.position[1] = maxPos
+				for note in self._children:
+					maxPos = max(note._line,maxPos)
+				self._length -= self._baseLine-maxPos
+				self._baseLine = maxPos
 			# the base note is the highest on the page (lowest y)
 			else:
 				minPos = inf
-				for note in self.notes:
-					minPos = min(note.position[1],minPos)
-				self.length -= minPos-self.position[1]
-				self.position[1] = minPos
+				for note in self._children:
+					minPos = min(note._line,minPos)
+				self._length -= minPos-self._baseLine
+				self._baseLine = minPos
 			#clusters the remaining notes correctly
-			self.clusterNotes()
+			self._clusterNotes()
 
-	def clusterNotes(self):
+	# TODO: move from bottom and top line rather than base and length?
+
+	# TODO: perhaps make this function shorter
+	def _clusterNotes(self):
 		"""
 			This function computes the correct x-position (left or right of the
 			stem) for each note in a chord, taking into account the effect of
 			"clustered" notes (ones a second apart)
 		"""
 		noteList = {}
-		for note in self.notes:
-			noteList[note.position[1]] = note
+		for note in self._children:
+			noteList[note._line] = note
 		order = noteList.keys()
 		order.sort()
+		# TODO: do this ordering elsewhere, only when appropriate, and then
+		# have children always in order?
 
 		# For a down-stem:
-		if self.direction == -1:
-			noteList[order[0]].position[0] = -self.direction
+		if self._direction == -1:
+			noteList[order[0]].setSide(-self._direction)
 			for i in range(1,len(order)):
 				if (order[i-1] == order[i]-1):
-					noteList[order[i]].position[0] = -noteList[order[i-1]].position[0]
+					noteList[order[i]].setSide(-noteList[order[i-1]]._xpos)
 				else:
-					noteList[order[i]].position[0] = -self.direction
+					noteList[order[i]].setSide(-self._direction)
 		# For an up-stem:
 		else:
-			noteList[order[-1]].position[0] = -self.direction
+			noteList[order[-1]].setSide(-self._direction)
 			for i in range(1,len(order)):
 				if (order[-i] == order[-i-1]+1):
-					noteList[order[-i-1]].position[0] = -noteList[order[-i]].position[0]
+					noteList[order[-i-1]].setSide(-noteList[order[-i]]._xpos)
 				else:
-					noteList[order[-i-1]].position[0] = -self.direction
+					noteList[order[-i-1]].setSide(-self._direction)
 
-def getClosest(objects,point,type = TYPE_ANY):
+	def isStemUp(self):
+		return self._direction
+
+#TODO: consider eliminating these
+
+#def getClosest(objects,point,type = TYPE_ANY):
+#	dist = inf
+#	best = None
+#	for object in objects:
+#		if (type == TYPE_ANY or object.type == type) and object.dist(point) < dist:
+#			dist = object.dist(point)
+#			best = object
+#	return best, dist
+
+def getClosestStaff(staves,point):
 	dist = inf
 	best = None
-	for object in objects:
-		if (type == TYPE_ANY or object.type == type) and object.dist(point) < dist:
-			dist = object.dist(point)
-			best = object
+	for staff in staves:
+		if staff.dist(point) < dist:
+			dist = staff.dist(point)
+			best = staff
 	return best, dist
+	
 
-def getObjectsIn(objects,rect,type = TYPE_ANY):
-	"""
-	  Return all objects of a given type that are in the given rectangle.
-	"""
-	inside = []
-	for object in objects:
-		if (type == TYPE_ANY or object.type == type) and object.isIn(rect):
-			inside.append(object)
-	return inside
+#def getObjectsIn(objects,rect,type = TYPE_ANY):
+#	"""
+#	  Return all objects of a given type that are in the given rectangle.
+#	"""
+#	inside = []
+#	for object in objects:
+#		if (type == TYPE_ANY or object.type == type) and object.isIn(rect):
+#			inside.append(object)
+#	return inside
