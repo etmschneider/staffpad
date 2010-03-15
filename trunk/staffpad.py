@@ -87,7 +87,7 @@ class Page:
 			# TODO: do this before staff logic (modify MusicObject stem code
 			# to allow this)
 			# TODO: pick other than first? pick closest instead?
-			closeStems = staff.recurseGetIntersectRect(n._rect,mus.TYPE_STEM)
+			closeStems = staff.recurseGetIntersectRect(n._rect,mus.Stem)
 			if len(closeStems) != 0:
 				closeStems[0].addNotes([n])
 
@@ -102,7 +102,7 @@ class Page:
 
 			r = mus.STAFFSPACING*0.25
 			area = pygame.Rect(centerOffset[0]-r,centerOffset[1]-r,2.0*r,2.0*r)
-			closeNotes = staff.recurseGetIntersectRect(area,mus.TYPE_NOTE)
+			closeNotes = staff.recurseGetIntersectRect(area,mus.Note)
 			# TODO: Should there instead be a recurseGetClosest?
 
 			if len(closeNotes) > 0:
@@ -130,8 +130,8 @@ class Page:
 			# TODO: add all notes, and have stem sort it out?
 			# TODO: choose closest for base?
 			r = mus.STAFFSPACING*0.25
-			closeTopNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,top-r,2.0*r,2.0*r),mus.TYPE_NOTE)
-			closeBotNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,bottom-r,2.0*r,2.0*r),mus.TYPE_NOTE)
+			closeTopNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,top-r,2.0*r,2.0*r),mus.Note)
+			closeBotNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,bottom-r,2.0*r,2.0*r),mus.Note)
 
 			# If the vertical line's top or bottom is close to a note,
 			# then we make it a stem of that note, TODO: giving preference
@@ -151,7 +151,7 @@ class Page:
 				# Find any other notes within range of the stem and attach them
 				area = pygame.Rect(center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen*0.5,mus.STAFFSPACING*0.5,stemLen)
 
-				chordNotes = staff.recurseGetIntersectRect(area,mus.TYPE_NOTE)
+				chordNotes = staff.recurseGetIntersectRect(area,mus.Note)
 				stem.addNotes(chordNotes)
 
 				# Redraw
