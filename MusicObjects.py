@@ -3,13 +3,6 @@ from numpy import *
 STAFFSPACING = 15.0
 BLACK = pygame.Color("black")
 TYPE_ANY = -1
-TYPE_NONE = 0
-TYPE_STAFF = 1
-TYPE_NOTE = 2
-TYPE_BARLINE = 3
-TYPE_STEM = 4
-TYPE_ACCIDENTAL = 5
-# TODO: use __class__ attribute to check instead of TYPE
 
 NOTE_FILLED = -1
 NOTE_EMPTY = -2
@@ -40,7 +33,6 @@ class MusicObject:
 	  be used by itself.
 	"""
 	def __init__(self):
-		self._type = TYPE_NONE
 		self._rect = pygame.Rect(0,0,0,0)
 		self._parent = None
 		self._children = []
@@ -133,7 +125,7 @@ class MusicObject:
 	# Recursively get anything that intersects the given point/rectangle
 	def recurseGetIntersectPoint(self,point,type=TYPE_ANY):
 		intersectList = []
-		if (self._type == type or type == TYPE_ANY) and self.intersectPoint(point):
+		if (self.__class__ == type or type == TYPE_ANY) and self.intersectPoint(point):
 			intersectList.append(self)
 		for child in self._children:
 			intersectList += child.recurseGetIntersectPoint(point,type)
@@ -141,15 +133,11 @@ class MusicObject:
 
 	def recurseGetIntersectRect(self,rect,type=TYPE_ANY):
 		intersectList = []
-		if (self._type == type or type == TYPE_ANY) and self.intersectRect(rect):
+		if (self.__class__ == type or type == TYPE_ANY) and self.intersectRect(rect):
 			intersectList.append(self)
 		for child in self._children:
 			intersectList += child.recurseGetIntersectRect(rect,type)
 		return intersectList
-
-	# The following methods return attributes
-	def type(self):
-		return self._type
 
 # TODO: what about all "_" variables just being read-only?  How about all
 # class variables be read-only?  Then we don't have to mess with "_"...
@@ -186,7 +174,6 @@ class Staff(MusicObject):
 		MusicObject.__init__(self)
 		self._yMiddle = ypos
 		self._width = width
-		self._type = TYPE_STAFF # TODO: is this redundant with the class name?
 		height = STAFFSPACING*4.0
 		self._rect = pygame.Rect(0,ypos-height/2.0,width,height)
 
@@ -234,7 +221,7 @@ class Staff(MusicObject):
 		self._children.append(obj)
 
 	def _adoptFrom(self,oldParent):
-		if oldParent._type == TYPE_STEM:
+		if oldParent.__class__ == Stem:
 			for child in oldParent._children:
 				child.stemToStaff()
 
@@ -244,7 +231,6 @@ class Barline(MusicObject):
 		self._parent = parent
 		# For barlines, the horizontal distance is all that matters
 		self._xpos = xpos;
-		self._type = TYPE_BARLINE
 		self._style = BARLINE_NORMAL
 		self._rect = pygame.Rect(xpos-1,self._parent._rect.top,2,STAFFSPACING*4.0)
 	def draw(self,canvas,scale):
@@ -261,7 +247,6 @@ class Barline(MusicObject):
 
 # TODO: recursively setRects if needed
 
-# TODO: finish this class
 class Accidental(MusicObject):
 	"""
 	  The accidental object is a sharp or flat (or perhaps someday double,
@@ -272,7 +257,6 @@ class Accidental(MusicObject):
 		MusicObject.__init__(self)
 		self._parent = parent
 		self._parent.addChild(self)
-		self._type = TYPE_ACCIDENTAL
 		self._style = style
 		self._setRect()
 
@@ -316,10 +300,9 @@ class Note(MusicObject):
 		MusicObject.__init__(self)
 		self._length = length #TODO: call this style, not length!
 		self._parent = parent
-		self._type = TYPE_NOTE
-		if parent._type == TYPE_STAFF:
+		if parent.__class__ == Staff:
 			self._line = parent.whichLine(pos[1])
-		if parent._type == TYPE_STEM:
+		if parent.__class__ == Stem:
 			self._line = parent.parent.whichLine(pos[1])
 		self._xpos = pos[0] # Absolute pos for free, side of stem for stemmed
 		self._setRectAndPos()
@@ -330,10 +313,10 @@ class Note(MusicObject):
 		  the page, sets the note's page-rectangle (for collision purposes) and
 		  page-coordinate center position
 		"""
-		if self._parent.type() == TYPE_STAFF:
+		if self._parent.__class__ == Staff:
 			self._x = self._xpos
 			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
-		elif self._parent.type() == TYPE_STEM:
+		elif self._parent.__class__ == Stem:
 			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
 			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
 		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
@@ -341,9 +324,9 @@ class Note(MusicObject):
 			child._setRect() #TODO: can we do this without calling private function?
 
 	def draw(self,canvas,scale):
-		if self._parent._type == TYPE_STAFF:
+		if self._parent.__class__ == Staff:
 			staffMiddle = self._parent._yMiddle
-		elif self._parent._type == TYPE_STEM:
+		elif self._parent.__class__ == Stem:
 			staffMiddle = self._parent._parent._yMiddle
 
 		if self._length == NOTE_FILLED:
@@ -372,10 +355,6 @@ class Note(MusicObject):
 		x = self._x-point[0]
 		y = self._y-point[1]
 		return max(sqrt(x*x+y*y)-STAFFSPACING/2.0,0)
-
-# TODO: add adopts (for staff)
-# TODO: cleanup stem lenght
-
 
 	def intersectPoint(self,point):
 		return self.dist(point) == 0
@@ -451,7 +430,6 @@ class Stem(MusicObject):
 		self._children = children
 		# The parent staff which this stem belongs to.
 		self._parent = parent
-		self._type = TYPE_STEM
 		self._xpos = pos[0]
 		self._baseLine = pos[1]
 
@@ -557,17 +535,6 @@ class Stem(MusicObject):
 
 	def _cantSurviveWithoutChildren(self):
 		return True
-
-#TODO: consider eliminating these
-
-#def getClosest(objects,point,type = TYPE_ANY):
-#	dist = inf
-#	best = None
-#	for object in objects:
-#		if (type == TYPE_ANY or object.type == type) and object.dist(point) < dist:
-#			dist = object.dist(point)
-#			best = object
-#	return best, dist
 
 def getClosestStaff(staves,point):
 	dist = inf
