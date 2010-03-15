@@ -62,6 +62,8 @@ class Page:
 		  This is probably too much for one function, and should eventually be
 		  broken up into smaller chunks in some intelligent way.
 		"""
+		# TODO: turn "rect" into an actual rect object.
+
 		# Conditions to become a note:
 		# - shape must be a circle or a dot
 		# - TODO: size must be in the expected range for a note
@@ -92,22 +94,24 @@ class Page:
 			self.pad.redraw()
 
 		elif type == 'sharp':
-#			centerOffset = [0.5*(rect[0][0]+rect[1][0])+mus.STAFFSPACING*1.5,0.5*(rect[0][1]+rect[1][1])]
+			centerOffset = [0.5*(rect[0][0]+rect[1][0])+mus.STAFFSPACING*1.5,0.5*(rect[0][1]+rect[1][1])]
 
-#			# get closest staff on which to attach sharp to note
-#			staff, dist = mus.getClosest(self.staves,centerOffset)
+			# get closest staff on which to attach sharp to note
+			staff, dist = mus.getClosestStaff(self.staves,centerOffset)
 
-#			note, dist = mus.getClosest(staff.objects,centerOffset,mus.TYPE_NOTE)
-#			print centerOffset
-#			print dist
+			r = mus.STAFFSPACING*0.25
+			area = pygame.Rect(centerOffset[0]-r,centerOffset[1]-r,2.0*r,2.0*r)
+			closeNotes = staff.recurseGetIntersectRect(area,mus.TYPE_NOTE)
+			# TODO: Should there instead be a recurseGetClosest?
 
-#			# Get note just to the right of this sharp.
-#			if dist < mus.STAFFSPACING*0.5:
-#				print "attaching sharp to note"
-#			else:
-#				print "nowhere to put sharp!"
-			print "detected sharp"
-			# TODO: finish above code
+			if len(closeNotes) > 0:
+				a = mus.Accidental(closeNotes[0],mus.ACC_SHARP)
+			else:
+				print "nowhere to put sharp!"
+
+			self.pad.redraw()
+
+# TODO: color unrecognized stuff red?
 
 		elif type == 'vline':
 			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
@@ -122,13 +126,11 @@ class Page:
 			# Find the lines which the line starts and ends at
 			endlines = [staff.whichLine(top),staff.whichLine(bottom)]
 
-			print "detected vertical line"
-
 			# TODO: add all notes, and have stem sort it out?
 			# TODO: choose closest for base?
 			r = mus.STAFFSPACING*0.25
-			closeTopNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,top-r,2*r,2*r),mus.TYPE_NOTE)
-			closeBotNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,bottom-r,2*r,2*r),mus.TYPE_NOTE)
+			closeTopNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,top-r,2.0*r,2.0*r),mus.TYPE_NOTE)
+			closeBotNotes = staff.recurseGetIntersectRect(pygame.Rect(center[0]-r,bottom-r,2.0*r,2.0*r),mus.TYPE_NOTE)
 
 			# If the vertical line's top or bottom is close to a note,
 			# then we make it a stem of that note, TODO: giving preference
@@ -158,13 +160,13 @@ class Page:
 			# at the staff's top and bottom line
 			# TODO: Change these values to a staff constant, based on 
 			# staff type
-#			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
-#				barline = mus.Barline(center[0],staff)
-#				# draw barline
-#				staff.addObject(barline)
-#				barline.draw(self.pad.background,self.pad.zoom);
-#			else:
-#				print "unrecognized vertical line"
+			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
+				barline = mus.Barline(center[0],staff)
+				# draw barline
+				staff.addObject(barline)
+				barline.draw(self.pad.background,self.pad.zoom);
+			else:
+				print "unrecognized vertical line"
 		else:
 			print "unhandled shape"
 
