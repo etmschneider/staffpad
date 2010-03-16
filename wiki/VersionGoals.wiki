@@ -25,7 +25,9 @@ These versions represent incremental and significant goals for the next minor an
     * Basic accidentals should be recognized and attached to appropriate notes *(sharps work)*
     * eighth and sixteenth note stems should be recognized when drawn.
   * 0.4:
-    * TBD
+    * Support for (basic) clefs
+    * initial support for beams (even if it is restrictive
+    * "drag/drop" movement of notes, stems, barlines, and clefs
 
 The first major milestone will be version 0.99  This will be a beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
 
