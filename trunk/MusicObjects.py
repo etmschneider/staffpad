@@ -27,6 +27,7 @@ of that object
 Finally, there is a standard order of functions (for readability):
   Basic Functions:
     __init__
+	addChild
     draw
   Distance: TODO: MAYBE REMOVE THESE FUNCTIONS!
     dist
@@ -54,15 +55,24 @@ class MusicObject:
 	  base class just acts like a single point with no meaning, and should not
 	  be used by itself.
 	"""
-	def __init__(self):
+	def __init__(self,parent):
 		self._rect = pygame.Rect(0,0,0,0)
-		self._parent = None
+		self._parent = parent
 		self._children = []
+		# Since staves have "None" type parent, this prevents errors.
+		if self._parent:
+			self._parent.addChild(self)
+
+	def addChild(self,obj):
+		"""
+		  This should be overwritten if the object should do something special
+		  when a child is added (such as recompute clusters, stem length, etc)
+		"""
+		self._children.append(obj)
 
 	def draw(self,canvas,scale):
 		pass
 
-	# TODO: can we get rid of distance functions?
 	def dist(self,point):
 		return 0
 
@@ -188,7 +198,7 @@ class Staff(MusicObject):
 	  descendents of a staff.
 	"""
 	def __init__(self,width,ypos):
-		MusicObject.__init__(self)
+		MusicObject.__init__(self,None)
 		self._yMiddle = ypos
 		self._width = width
 		height = STAFFSPACING*4.0
@@ -221,9 +231,6 @@ class Staff(MusicObject):
 	def removeChild(self,obj):
 		self._children.remove(obj)
 
-	def addChild(self,obj):
-		self._children.append(obj)
-
 	def whichLine(self,y):
 		"""
 		  Returns the closest line to the given point (with zero being the
@@ -233,7 +240,7 @@ class Staff(MusicObject):
 
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
-		MusicObject.__init__(self)
+		MusicObject.__init__(self,parent)
 		self._parent = parent
 		# For barlines, the horizontal position is all that matters
 		self._xpos = xpos;
@@ -258,9 +265,8 @@ class Accidental(MusicObject):
 	  position, except that defined by its parent.
 	"""
 	def __init__(self,parent,style):
-		MusicObject.__init__(self)
+		MusicObject.__init__(self,parent)
 		self._parent = parent
-		self._parent.addChild(self) #TODO: this doesn't seem like it should be here...maybe in staffpad instead?
 		self._style = style
 		self._setRect()
 
@@ -299,7 +305,7 @@ class Note(MusicObject):
 
 	#TODO: standardize init function param order
 	def __init__(self,pos,parent,length):
-		MusicObject.__init__(self)
+		MusicObject.__init__(self,parent)
 		self._length = length #TODO: call this style, not length!
 		self._parent = parent
 		if parent.__class__ == Staff:
@@ -375,14 +381,10 @@ class Note(MusicObject):
 		  If the note's parent is a stem, set which side of the stem it is on.
 		  This method should not be called if the parent is not a stem.
 		"""
-		# TODO: debug here: if we not parented by a stem, say something
 		self._xpos = side
 
 		# Adjust rectangle and position
 		self._setRectAndPos()
-
-	def addChild(self,child):
-		self._children.append(child)
 
 	def _setRectAndPos(self):
 		"""
@@ -399,10 +401,6 @@ class Note(MusicObject):
 		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
 		for child in self._children:
 			child._setRect() #TODO: can we do this without calling private function?
-
-# TODO: remove commented functions!
-
-# TODO: debug warnings?
 
 # TODO: change all comments? shorter style?
 
@@ -421,7 +419,7 @@ class Stem(MusicObject):
 	  page, and the y position is the line or space at which the stem begins.
 	"""
 	def __init__(self,pos,parent,length,direction,children):
-		MusicObject.__init__(self)
+		MusicObject.__init__(self,parent)
 		# -1 represents a down stem, +1 represents an up stem. 
 		self._direction = direction
 		# The length of the stem, in number of lines and spaces
