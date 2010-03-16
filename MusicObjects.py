@@ -23,6 +23,28 @@ of this code so that is allows you to do what you want in a "nice" way.
 
 Similarly, methods proceeded by an underscore should only be called by methods
 of that object
+
+Finally, there is a standard order of functions (for readability):
+  Basic Functions:
+    __init__
+    draw
+  Distance: TODO: MAYBE REMOVE THESE FUNCTIONS!
+    dist
+    _distVertLine
+  Intersection:
+    intersectPoint
+    intersectRect
+    recurseIntersectPoint
+    recurseIntersectRect
+    recurseGetIntersectPoint
+    recurseGetIntersectRect
+  Removal:
+    removeAt
+    _adoptFrom
+    _reorg
+  Other:
+    _cantSurviveWithoutChildren
+    (any other functions that apply to this object, such as attribute modifiers)
 """
 
 class MusicObject:
@@ -43,6 +65,62 @@ class MusicObject:
 	# TODO: can we get rid of distance functions?
 	def dist(self,point):
 		return 0
+
+	# These are utitily functions for the MusicObject to use in its internal
+	# methods, i.e. calculating distance
+	def _distVertLine(self,point):
+		"""
+		  This function computes the distance to a vertical line centered at
+		  the x position and with top and bottom equal to the object's rect.
+		"""
+		if self._rect.top <= point[1] <= self._rect.bottom:
+			dy = 0
+		else:
+			dy = min(self._rect.bottom - point[1],self._rect.top - point[1])
+		dx = self._position[0]-point[0]
+		return sqrt(dx*dx+dy*dy)
+
+	# These methods check for intersections between the object and a point or
+	# rectangle
+	def intersectPoint(self,point):
+		return self._rect.collidepoint(point)
+
+	def intersectRect(self,rect):
+		return self._rect.colliderect(rect)
+
+	# The following methods are recursive; i.e., they check all children as well
+	def recurseIntersectPoint(self,point):
+		if self.intersectPoint(point):
+			return True
+		for child in self._children:
+			if child.recurseIntersectPoint(point):
+				return True
+		return False
+
+	def recurseIntersectRect(self,rect):
+		if self.intersectRect(rect):
+			return True
+		for child in self._children:
+			if child.recurseIntersectRect(rect):
+				return True
+		return False
+
+	# Recursively get anything that intersects the given point/rectangle
+	def recurseGetIntersectPoint(self,point,type=TYPE_ANY):
+		intersectList = []
+		if (self.__class__ == type or type == TYPE_ANY) and self.intersectPoint(point):
+			intersectList.append(self)
+		for child in self._children:
+			intersectList += child.recurseGetIntersectPoint(point,type)
+		return intersectList
+
+	def recurseGetIntersectRect(self,rect,type=TYPE_ANY):
+		intersectList = []
+		if (self.__class__ == type or type == TYPE_ANY) and self.intersectRect(rect):
+			intersectList.append(self)
+		for child in self._children:
+			intersectList += child.recurseGetIntersectRect(rect,type)
+		return intersectList
 
 	def removeAt(self,point):
 		"""
@@ -96,67 +174,6 @@ class MusicObject:
 		"""
 		pass
 
-	# These methods check for intersections between the object and a point or
-	# rectangle
-	def intersectPoint(self,point):
-		return self._rect.collidepoint(point)
-
-	def intersectRect(self,rect):
-		return self._rect.colliderect(rect)
-
-	# The following methods are recursive; i.e., they check all children as well
-	def recurseIntersectPoint(self,point):
-		if self.intersectPoint(point):
-			return True
-		for child in self._children:
-			if child.recurseIntersectPoint(point):
-				return True
-		return False
-
-	def recurseIntersectRect(self,rect):
-		if self.intersectRect(rect):
-			return True
-		for child in self._children:
-			if child.recurseIntersectRect(rect):
-				return True
-		return False
-
-	# TODO: does adding an optional "maxdepth" parameter make any sense?
-	# Recursively get anything that intersects the given point/rectangle
-	def recurseGetIntersectPoint(self,point,type=TYPE_ANY):
-		intersectList = []
-		if (self.__class__ == type or type == TYPE_ANY) and self.intersectPoint(point):
-			intersectList.append(self)
-		for child in self._children:
-			intersectList += child.recurseGetIntersectPoint(point,type)
-		return intersectList
-
-	def recurseGetIntersectRect(self,rect,type=TYPE_ANY):
-		intersectList = []
-		if (self.__class__ == type or type == TYPE_ANY) and self.intersectRect(rect):
-			intersectList.append(self)
-		for child in self._children:
-			intersectList += child.recurseGetIntersectRect(rect,type)
-		return intersectList
-
-# TODO: what about all "_" variables just being read-only?  How about all
-# class variables be read-only?  Then we don't have to mess with "_"...
-
-	# TODO: do we even need distance functions?  Should they be recursive?
-	# These are utitily functions for the MusicObject to use in its internal
-	# methods, i.e. calculating distance
-	def _distVertLine(self,point):
-		"""
-		  This function computes the distance to a vertical line centered at
-		  the x position and with top and bottom equal to the object's rect.
-		"""
-		if self._rect.top <= point[1] <= self._rect.bottom:
-			dy = 0
-		else:
-			dy = min(self._rect.bottom - point[1],self._rect.top - point[1])
-		dx = self._position[0]-point[0]
-		return sqrt(dx*dx+dy*dy)
-
 	def _cantSurviveWithoutChildren(self):
 		"""
 		  This is a property of the particular class -- i.e., whether or not
@@ -196,6 +213,17 @@ class Staff(MusicObject):
 		"""
 		return abs(self._yMiddle-point[1])
 
+	def _adoptFrom(self,oldParent):
+		if oldParent.__class__ == Stem:
+			for child in oldParent._children:
+				child.stemToStaff()
+
+	def removeChild(self,obj):
+		self._children.remove(obj)
+
+	def addChild(self,obj):
+		self._children.append(obj)
+
 	def whichLine(self,y):
 		"""
 		  Returns the closest line to the given point (with zero being the
@@ -203,33 +231,11 @@ class Staff(MusicObject):
 		"""
 		return int(round(2.0*(y - self._yMiddle)/(STAFFSPACING)))
 
-	# TODO: do we need this?  we can access children directly!
-	def addObject(self,obj):
-		self._children.append(obj)
-
-	# TODO: do we need this?  we can access children directly!
-	def addNote(self,obj):
-		self._children.append(obj)
-
-	# TODO: do we need this?  we can access children directly!
-	def removeChild(self,object):
-		self._children.remove(object)
-
-	# TODO: ditto (probably better to have accessors, though, in case we want
-	# to always do something when this is called)
-	def addChild(self,obj):
-		self._children.append(obj)
-
-	def _adoptFrom(self,oldParent):
-		if oldParent.__class__ == Stem:
-			for child in oldParent._children:
-				child.stemToStaff()
-
 class Barline(MusicObject):
 	def __init__(self,xpos,parent):
 		MusicObject.__init__(self)
 		self._parent = parent
-		# For barlines, the horizontal distance is all that matters
+		# For barlines, the horizontal position is all that matters
 		self._xpos = xpos;
 		self._style = BARLINE_NORMAL
 		self._rect = pygame.Rect(xpos-1,self._parent._rect.top,2,STAFFSPACING*4.0)
@@ -245,8 +251,6 @@ class Barline(MusicObject):
 		"""
 		return self._distVerticalLine(point)
 
-# TODO: recursively setRects if needed
-
 class Accidental(MusicObject):
 	"""
 	  The accidental object is a sharp or flat (or perhaps someday double,
@@ -256,12 +260,9 @@ class Accidental(MusicObject):
 	def __init__(self,parent,style):
 		MusicObject.__init__(self)
 		self._parent = parent
-		self._parent.addChild(self)
+		self._parent.addChild(self) #TODO: this doesn't seem like it should be here...maybe in staffpad instead?
 		self._style = style
 		self._setRect()
-
-	def _setRect(self):
-		self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
 
 	# TODO: make this shorter/prettier
 	def draw(self,canvas,scale):
@@ -276,7 +277,8 @@ class Accidental(MusicObject):
 		pygame.draw.line(canvas,pygame.Color("black"),(l,h/3.0+t),(r,h/3.0+t),2)
 		pygame.draw.line(canvas,pygame.Color("black"),(l,h/1.5+t),(r,h/1.5+t),2)
 
-# TODO: should we put each class in its own file?
+	def _setRect(self):
+		self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
 
 class Note(MusicObject):
 	"""
@@ -306,22 +308,6 @@ class Note(MusicObject):
 			self._line = parent.parent.whichLine(pos[1])
 		self._xpos = pos[0] # Absolute pos for free, side of stem for stemmed
 		self._setRectAndPos()
-
-	def _setRectAndPos(self):
-		"""
-		  This function, which should be called anytime the note is moved on
-		  the page, sets the note's page-rectangle (for collision purposes) and
-		  page-coordinate center position
-		"""
-		if self._parent.__class__ == Staff:
-			self._x = self._xpos
-			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
-		elif self._parent.__class__ == Stem:
-			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
-			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
-		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
-		for child in self._children:
-			child._setRect() #TODO: can we do this without calling private function?
 
 	def draw(self,canvas,scale):
 		if self._parent.__class__ == Staff:
@@ -398,9 +384,23 @@ class Note(MusicObject):
 	def addChild(self,child):
 		self._children.append(child)
 
-# TODO: remove commented functions!
+	def _setRectAndPos(self):
+		"""
+		  This function, which should be called anytime the note is moved on
+		  the page, sets the note's page-rectangle (for collision purposes) and
+		  page-coordinate center position
+		"""
+		if self._parent.__class__ == Staff:
+			self._x = self._xpos
+			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		elif self._parent.__class__ == Stem:
+			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
+			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
+		for child in self._children:
+			child._setRect() #TODO: can we do this without calling private function?
 
-# TODO: standard function order?
+# TODO: remove commented functions!
 
 # TODO: debug warnings?
 
@@ -439,25 +439,6 @@ class Stem(MusicObject):
 		self._setRect()
 		self._clusterNotes()
 
-	# TODO: change all xpos and ypos to xPos and yPos? consistency!
-
-	def _setRect(self):
-		x = self._xpos
-		yTop = self._parent._yMiddle + int((STAFFSPACING/2.0)*self._baseLine)
-		yBot = yTop
-		if self._direction == 1:
-			yTop -= self._length*STAFFSPACING/2.0
-		else:
-			yBot += self._length*STAFFSPACING/2.0
-		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
-
-	def addNotes(self,children):
-		for note in children:
-			self._children.append(note)
-			note.staffToStem(self)
-
-		self._clusterNotes()
-
 	def draw(self,canvas,scale):
 		for note in self._children:
 			note.draw(canvas,scale)
@@ -466,6 +447,7 @@ class Stem(MusicObject):
 		b = self._rect.bottom
 		pygame.draw.line(canvas,pygame.Color("black"),(x,t),(x,b),2)
 
+	# TODO: change all xpos and ypos to xPos and yPos? consistency!
 	def dist(self,point):
 		"""
 		  The distance function here will return the distance, in page
@@ -493,6 +475,22 @@ class Stem(MusicObject):
 		self._setRect()
 		self._clusterNotes()
 
+	def _setRect(self):
+		x = self._xpos
+		yTop = self._parent._yMiddle + int((STAFFSPACING/2.0)*self._baseLine)
+		yBot = yTop
+		if self._direction == 1:
+			yTop -= self._length*STAFFSPACING/2.0
+		else:
+			yBot += self._length*STAFFSPACING/2.0
+		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
+
+	def addNotes(self,children):
+		for note in children:
+			self._children.append(note)
+			note.staffToStem(self)
+
+		self._clusterNotes()
 
 	# TODO: keep track of stem's children notes in order
 
