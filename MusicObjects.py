@@ -22,7 +22,19 @@ different (and possibly more appropriate) way, or (b) redesigning the structure
 of this code so that is allows you to do what you want in a "nice" way.
 
 Similarly, methods proceeded by an underscore should only be called by methods
-of that object
+of that object.
+
+There is a standard parameter order for initializers of MusicObjects.  Some of
+these are optional, depending on the object. The order is:
+  self
+  parent
+  position (this could be one or two elements; a single element represents a
+            page position, while two represents something more independent (such
+            as a width and a page height, or an page x position and a line
+            number)
+  size
+  style/type/etc
+  children
 
 Finally, there is a standard order of functions (for readability):
   Basic Functions:
@@ -39,6 +51,7 @@ Finally, there is a standard order of functions (for readability):
     recurseIntersectRect
     recurseGetIntersectPoint
     recurseGetIntersectRect
+	setRect
   Removal:
     removeAt
     _adoptFrom
@@ -59,7 +72,8 @@ class MusicObject:
 		self._rect = pygame.Rect(0,0,0,0)
 		self._parent = parent
 		self._children = []
-		# Since staves have "None" type parent, this prevents errors.
+		# Since the highest level objects have "None" type parent, this
+		# prevents errors.
 		if self._parent:
 			self._parent.addChild(self)
 
@@ -197,12 +211,12 @@ class Staff(MusicObject):
 	  clefs, and various other musical symbols, and most other markings are
 	  descendents of a staff.
 	"""
-	def __init__(self,width,ypos):
-		MusicObject.__init__(self,None)
-		self._yMiddle = ypos
+	def __init__(self,parent,width,yPos):
+		MusicObject.__init__(self,parent)
+		self._yMiddle = yPos
 		self._width = width
 		height = STAFFSPACING*4.0
-		self._rect = pygame.Rect(0,ypos-height/2.0,width,height)
+		self._rect = pygame.Rect(0,yPos-height/2.0,width,height)
 
 	def draw(self,canvas,scale):
 		"""
@@ -239,15 +253,15 @@ class Staff(MusicObject):
 		return int(round(2.0*(y - self._yMiddle)/(STAFFSPACING)))
 
 class Barline(MusicObject):
-	def __init__(self,xpos,parent):
+	def __init__(self,parent,xPos):
 		MusicObject.__init__(self,parent)
 		self._parent = parent
 		# For barlines, the horizontal position is all that matters
-		self._xpos = xpos;
+		self._xPos = xPos;
 		self._style = BARLINE_NORMAL
-		self._rect = pygame.Rect(xpos-1,self._parent._rect.top,2,STAFFSPACING*4.0)
+		self._rect = pygame.Rect(xPos-1,self._parent._rect.top,2,STAFFSPACING*4.0)
 	def draw(self,canvas,scale):
-		x = self._xpos
+		x = self._xPos
 		t = self._rect.top
 		b = self._rect.bottom
 		pygame.draw.line(canvas,pygame.Color("black"),(x,t),(x,b),2)
@@ -270,21 +284,23 @@ class Accidental(MusicObject):
 		self._style = style
 		self._setRect()
 
-	# TODO: make this shorter/prettier
 	def draw(self,canvas,scale):
-		w = self._rect.w
-		h = self._rect.h
-		t = self._rect.top
-		l = self._rect.left
-		b = self._rect.bottom
-		r = self._rect.right
-		pygame.draw.line(canvas,pygame.Color("black"),(l+w/3.0,t),(l+w/3.0,b),2)
-		pygame.draw.line(canvas,pygame.Color("black"),(l+w/1.5,t),(l+w/1.5,b),2)
-		pygame.draw.line(canvas,pygame.Color("black"),(l,h/3.0+t),(r,h/3.0+t),2)
-		pygame.draw.line(canvas,pygame.Color("black"),(l,h/1.5+t),(r,h/1.5+t),2)
+		# Vertical lines
+		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.33,self._rect.top),(self._rect.left+self._rect.w*0.33,self._rect.bottom),2)
+		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.66,self._rect.top),(self._rect.left+self._rect.w*0.66,self._rect.bottom),2)
+		# Horizontal lines
+		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.40+self._rect.top),(self._rect.right,self._rect.w*0.26+self._rect.top),2)
+		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.73+self._rect.top),(self._rect.right,self._rect.w*0.59+self._rect.top),2)
 
 	def _setRect(self):
 		self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
+
+	def move(self):
+		"""
+		  This function gets called when something above in the heirarchy has
+		  been moved.
+		"""
+		self._setRect()
 
 class Note(MusicObject):
 	"""
@@ -303,16 +319,15 @@ class Note(MusicObject):
 	  that is either its parent or grandparent.
 	"""
 
-	#TODO: standardize init function param order
-	def __init__(self,pos,parent,length):
+	def __init__(self,parent,pos,style):
 		MusicObject.__init__(self,parent)
-		self._length = length #TODO: call this style, not length!
+		self._style = style
 		self._parent = parent
 		if parent.__class__ == Staff:
 			self._line = parent.whichLine(pos[1])
 		if parent.__class__ == Stem:
 			self._line = parent.parent.whichLine(pos[1])
-		self._xpos = pos[0] # Absolute pos for free, side of stem for stemmed
+		self._xPos = pos[0] # Absolute pos for free, side of stem for stemmed
 		self._setRectAndPos()
 
 	def draw(self,canvas,scale):
@@ -321,9 +336,9 @@ class Note(MusicObject):
 		elif self._parent.__class__ == Stem:
 			staffMiddle = self._parent._parent._yMiddle
 
-		if self._length == NOTE_FILLED:
+		if self._style == NOTE_FILLED:
 			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._x)),int(round(self._y))], int(round(STAFFSPACING/2.0)))
-		elif self._length == NOTE_EMPTY:
+		elif self._style == NOTE_EMPTY:
 			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._x)),int(round(self._y))], int(round(STAFFSPACING/2.0)), 2)
 
 		# Draw ledger lines if the note is...
@@ -351,12 +366,29 @@ class Note(MusicObject):
 	def intersectPoint(self,point):
 		return self.dist(point) == 0
 
+	def _setRectAndPos(self):
+		"""
+		  This function, which should be called anytime the note is moved on
+		  the page, sets the note's page-rectangle (for collision purposes) and
+		  page-coordinate center position
+		"""
+		if self._parent.__class__ == Staff:
+			self._x = self._xPos
+			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		elif self._parent.__class__ == Stem:
+			self._x = self._parent._xPos + (STAFFSPACING/2.0)*self._xPos
+			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
+		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
+
+		for child in self._children:
+			child.move()
+
 	def staffToStem(self,stem):
 		"""
 		  NOTE: called by stem only
 		"""
 		# reset x-position
-		self._xpos = -stem.isStemUp()
+		self._xPos = -stem.isStemUp()
 
 		# change ownership (already owned by stem who called this)
 		self._parent.removeChild(self)
@@ -367,7 +399,7 @@ class Note(MusicObject):
 
 	def stemToStaff(self):
 		# reset x-position (absolute instead of side)
-		self._xpos = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos;
+		self._xPos = self._parent._xPos + (STAFFSPACING/2.0)*self._xPos;
 
 		# change ownership (owned by no-one)
 		self._parent = self._parent._parent
@@ -381,30 +413,10 @@ class Note(MusicObject):
 		  If the note's parent is a stem, set which side of the stem it is on.
 		  This method should not be called if the parent is not a stem.
 		"""
-		self._xpos = side
+		self._xPos = side
 
 		# Adjust rectangle and position
 		self._setRectAndPos()
-
-	def _setRectAndPos(self):
-		"""
-		  This function, which should be called anytime the note is moved on
-		  the page, sets the note's page-rectangle (for collision purposes) and
-		  page-coordinate center position
-		"""
-		if self._parent.__class__ == Staff:
-			self._x = self._xpos
-			self._y = self._parent._yMiddle + (STAFFSPACING/2.0)*self._line
-		elif self._parent.__class__ == Stem:
-			self._x = self._parent._xpos + (STAFFSPACING/2.0)*self._xpos
-			self._y = self._parent._parent._yMiddle + (STAFFSPACING/2.0)*self._line
-		self._rect = pygame.Rect(self._x-STAFFSPACING/2.0,self._y-STAFFSPACING/2.0,STAFFSPACING,STAFFSPACING)
-		for child in self._children:
-			child._setRect() #TODO: can we do this without calling private function?
-
-# TODO: change all comments? shorter style?
-
-# TODO: consider eliminating position, and just using rectangle center?
 
 class Stem(MusicObject):
 	"""
@@ -418,7 +430,7 @@ class Stem(MusicObject):
 	  x position is the page coordinate of the stem, from the left side of the
 	  page, and the y position is the line or space at which the stem begins.
 	"""
-	def __init__(self,pos,parent,length,direction,children):
+	def __init__(self,parent,pos,length,direction,children):
 		MusicObject.__init__(self,parent)
 		# -1 represents a down stem, +1 represents an up stem. 
 		self._direction = direction
@@ -428,7 +440,7 @@ class Stem(MusicObject):
 		self._children = children
 		# The parent staff which this stem belongs to.
 		self._parent = parent
-		self._xpos = pos[0]
+		self._xPos = pos[0]
 		self._baseLine = pos[1]
 
 		for note in self._children:
@@ -440,18 +452,27 @@ class Stem(MusicObject):
 	def draw(self,canvas,scale):
 		for note in self._children:
 			note.draw(canvas,scale)
-		x = self._xpos
+		x = self._xPos
 		t = self._rect.top
 		b = self._rect.bottom
 		pygame.draw.line(canvas,pygame.Color("black"),(x,t),(x,b),2)
 
-	# TODO: change all xpos and ypos to xPos and yPos? consistency!
 	def dist(self,point):
 		"""
 		  The distance function here will return the distance, in page
 		  coordinates, to the closest part of the stem.
 		"""
 		return self._distVertLine()
+
+	def _setRect(self):
+		x = self._xPos
+		yTop = self._parent._yMiddle + int((STAFFSPACING/2.0)*self._baseLine)
+		yBot = yTop
+		if self._direction == 1:
+			yTop -= self._length*STAFFSPACING/2.0
+		else:
+			yBot += self._length*STAFFSPACING/2.0
+		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
 
 	# TODO: can we simplify this at all?
 	def _reorg(self):
@@ -472,16 +493,6 @@ class Stem(MusicObject):
 
 		self._setRect()
 		self._clusterNotes()
-
-	def _setRect(self):
-		x = self._xpos
-		yTop = self._parent._yMiddle + int((STAFFSPACING/2.0)*self._baseLine)
-		yBot = yTop
-		if self._direction == 1:
-			yTop -= self._length*STAFFSPACING/2.0
-		else:
-			yBot += self._length*STAFFSPACING/2.0
-		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
 
 	def addNotes(self,children):
 		for note in children:
@@ -514,7 +525,7 @@ class Stem(MusicObject):
 			noteList[order[0]].setSide(-self._direction)
 			for i in range(1,len(order)):
 				if (order[i-1] == order[i]-1):
-					noteList[order[i]].setSide(-noteList[order[i-1]]._xpos)
+					noteList[order[i]].setSide(-noteList[order[i-1]]._xPos)
 				else:
 					noteList[order[i]].setSide(-self._direction)
 		# For an up-stem:
@@ -522,7 +533,7 @@ class Stem(MusicObject):
 			noteList[order[-1]].setSide(-self._direction)
 			for i in range(1,len(order)):
 				if (order[-i] == order[-i-1]+1):
-					noteList[order[-i-1]].setSide(-noteList[order[-i]]._xpos)
+					noteList[order[-i-1]].setSide(-noteList[order[-i]]._xPos)
 				else:
 					noteList[order[-i-1]].setSide(-self._direction)
 
