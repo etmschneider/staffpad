@@ -42,7 +42,7 @@ class Page:
 
 		# Initialize the page with four staves
 		for i in range(4):
-			s = mus.Staff(self.pad.pageSize[0],100*i+110)
+			s = mus.Staff(None,self.pad.pageSize[0],100*i+110)
 			self.staves.append(s)
 
 	def removeObjectAtPoint(self,point):
@@ -76,9 +76,9 @@ class Page:
 
 			# make note object
 			if type == 'dot':
-				n = mus.Note(center,staff,mus.NOTE_FILLED)
+				n = mus.Note(staff,center,mus.NOTE_FILLED)
 			elif type == 'circle':
-				n = mus.Note(center,staff,mus.NOTE_EMPTY)
+				n = mus.Note(staff,center,mus.NOTE_EMPTY)
 
 			# If there is a stem close, attach note to it
 			# TODO: do this before staff logic (modify MusicObject stem code
@@ -135,11 +135,11 @@ class Page:
 			if len(closeBotNotes) > 0 or len(closeTopNotes) > 0:
 				stemLen = abs(endlines[0]-endlines[1])
 				if len(closeBotNotes) > 0:
-					stem = mus.Stem((center[0],closeBotNotes[0]._line),
-					                staff,stemLen,1,[closeBotNotes[0]])
+					stem = mus.Stem(staff,(center[0],closeBotNotes[0]._line),
+					                stemLen,1,[closeBotNotes[0]])
 				else:
-					stem = mus.Stem((center[0],closeTopNotes[0]._line),
-					                staff,stemLen,-1,[closeTopNotes[0]])
+					stem = mus.Stem(staff,(center[0],closeTopNotes[0]._line),
+					                stemLen,-1,[closeTopNotes[0]])
 
 				# Find any other notes within range of the stem and attach them
 				area = pygame.Rect(center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen*0.5,mus.STAFFSPACING*0.5,stemLen)
@@ -155,7 +155,7 @@ class Page:
 			# TODO: Change these values to a staff constant, based on 
 			# staff type
 			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
-				barline = mus.Barline(center[0],staff)
+				barline = mus.Barline(staff,center[0])
 				# draw barline
 				barline.draw(self.pad.background,self.pad.zoom);
 			else:
