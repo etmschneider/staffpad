@@ -1,6 +1,8 @@
 import pygame
 from numpy import *
 STAFFSPACING = 15.0
+MINSTEMLENGTH = 6 # minimum stem length, in lines and spaces.
+
 BLACK = pygame.Color("black")
 TYPE_ANY = -1
 
@@ -446,6 +448,7 @@ class Stem(MusicObject):
 		for note in self._children:
 			note.staffToStem(self)
 
+		self._orderNotes()
 		self._setRect()
 		self._clusterNotes()
 
@@ -474,23 +477,22 @@ class Stem(MusicObject):
 			yBot += self._length*STAFFSPACING/2.0
 		self._rect = pygame.Rect(x-1,yTop,2,yBot-yTop)
 
-	# TODO: can we simplify this at all?
 	def _reorg(self):
+		self._orderNotes()
+
 		# the base note is the lowest on the page (highest y)
 		if self._direction == 1:
-			maxPos = -inf
-			for note in self._children:
-				maxPos = max(note._line,maxPos)
+			maxPos = self._children[-1]._line
 			self._length -= self._baseLine-maxPos
 			self._baseLine = maxPos
 		# the base note is the highest on the page (lowest y)
 		else:
-			minPos = inf
-			for note in self._children:
-				minPos = min(note._line,minPos)
+			minPos = self._children[0]._line
 			self._length -= minPos-self._baseLine
 			self._baseLine = minPos
 
+		# prevent the stem from becoming super-short
+		self._length = max(self._length,MINSTEMLENGTH)
 		self._setRect()
 		self._clusterNotes()
 
@@ -499,43 +501,49 @@ class Stem(MusicObject):
 			self._children.append(note)
 			note.staffToStem(self)
 
+		self._orderNotes()
 		self._clusterNotes()
-
-	# TODO: keep track of stem's children notes in order
 
 	# TODO: move from bottom and top line rather than base and length?
 
-	# TODO: perhaps make this function shorter
+	def _orderNotes(self):
+		"""
+		  Whenever the stem references self._children, it assumes that it is
+		  in order, from lowest to highest line.  This function ensures that
+		  that is the case.
+		"""
+		# Build "Order" to contain the sorted order of references into noteDict
+		noteDict = {}
+		for note in self._children:
+			noteDict[note._line] = note
+		order = noteDict.keys()
+		order.sort()
+
+		# Rebuild the list with the correct note ordering
+		self._children = [noteDict[index] for index in order]
+
 	def _clusterNotes(self):
 		"""
 			This function computes the correct x-position (left or right of the
 			stem) for each note in a chord, taking into account the effect of
 			"clustered" notes (ones a second apart)
 		"""
-		noteList = {}
-		for note in self._children:
-			noteList[note._line] = note
-		order = noteList.keys()
-		order.sort()
-		# TODO: do this ordering elsewhere, only when appropriate, and then
-		# have children always in order?
-
 		# For a down-stem:
 		if self._direction == -1:
-			noteList[order[0]].setSide(-self._direction)
-			for i in range(1,len(order)):
-				if (order[i-1] == order[i]-1):
-					noteList[order[i]].setSide(-noteList[order[i-1]]._xPos)
+			self._children[0].setSide(-self._direction)
+			for i in range(1,len(self._children)):
+				if (self._children[i-1]._line == self._children[i]._line-1):
+					self._children[i].setSide(-self._children[i-1]._xPos)
 				else:
-					noteList[order[i]].setSide(-self._direction)
+					self._children[i].setSide(-self._direction)
 		# For an up-stem:
 		else:
-			noteList[order[-1]].setSide(-self._direction)
-			for i in range(1,len(order)):
-				if (order[-i] == order[-i-1]+1):
-					noteList[order[-i-1]].setSide(-noteList[order[-i]]._xPos)
+			self._children[-1].setSide(-self._direction)
+			for i in range(1,len(self._children)):
+				if (self._children[-i]._line == self._children[-i-1]._line+1):
+					self._children[-i-1].setSide(-self._children[-i]._xPos)
 				else:
-					noteList[order[-i-1]].setSide(-self._direction)
+					self._children[-i-1].setSide(-self._direction)
 
 	def isStemUp(self):
 		return self._direction
