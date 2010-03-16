@@ -80,9 +80,6 @@ class Page:
 			elif type == 'circle':
 				n = mus.Note(center,staff,mus.NOTE_EMPTY)
 
-			# attach note to staff, and draw it
-			staff.addChild(n)
-
 			# If there is a stem close, attach note to it
 			# TODO: do this before staff logic (modify MusicObject stem code
 			# to allow this)
@@ -107,10 +104,9 @@ class Page:
 
 			if len(closeNotes) > 0:
 				a = mus.Accidental(closeNotes[0],mus.ACC_SHARP)
+				a.draw(self.pad.background,self.pad.zoom);
 			else:
 				print "nowhere to put sharp!"
-
-			self.pad.redraw()
 
 # TODO: color unrecognized stuff red?
 
@@ -145,9 +141,6 @@ class Page:
 					stem = mus.Stem((center[0],closeTopNotes[0]._line),
 					                staff,stemLen,-1,[closeTopNotes[0]])
 
-				# Add the object to the staff
-				staff.addChild(stem)
-
 				# Find any other notes within range of the stem and attach them
 				area = pygame.Rect(center[0]-mus.STAFFSPACING*0.25,center[1]-stemLen*0.5,mus.STAFFSPACING*0.5,stemLen)
 
@@ -164,7 +157,6 @@ class Page:
 			elif (endlines[0] in [-3,-4,-5] and endlines[1] in [3,4,5]):
 				barline = mus.Barline(center[0],staff)
 				# draw barline
-				staff.addChild(barline)
 				barline.draw(self.pad.background,self.pad.zoom);
 			else:
 				print "unrecognized vertical line"
