@@ -9,7 +9,8 @@ TYPE_ANY = -1
 NOTE_FILLED = -1
 NOTE_EMPTY = -2
 
-ACC_FLAT = 0
+ACC_FLAT = -1
+ACC_NATURAL = 0
 ACC_SHARP = 1
 
 BARLINE_NORMAL = 1
@@ -276,7 +277,7 @@ class Barline(MusicObject):
 
 class Accidental(MusicObject):
 	"""
-	  The accidental object is a sharp or flat (or perhaps someday double,
+	  The accidental object is a sharp/flat/natural (or perhaps someday double,
 	  three quarters, etc.), and should be the child of a note.  It has no
 	  position, except that defined by its parent.
 	"""
@@ -287,15 +288,33 @@ class Accidental(MusicObject):
 		self._setRect()
 
 	def draw(self,canvas,scale):
-		# Vertical lines
-		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.33,self._rect.top),(self._rect.left+self._rect.w*0.33,self._rect.bottom),2)
-		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.66,self._rect.top),(self._rect.left+self._rect.w*0.66,self._rect.bottom),2)
-		# Horizontal lines
-		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.40+self._rect.top),(self._rect.right,self._rect.w*0.26+self._rect.top),2)
-		pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.73+self._rect.top),(self._rect.right,self._rect.w*0.59+self._rect.top),2)
+		if self._style == ACC_SHARP:
+			# Vertical lines
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.33,self._rect.top),(self._rect.left+self._rect.w*0.33,self._rect.bottom),2)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left+self._rect.w*0.66,self._rect.top),(self._rect.left+self._rect.w*0.66,self._rect.bottom),2)
+			# Horizontal lines
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.40+self._rect.top),(self._rect.right,self._rect.w*0.26+self._rect.top),2)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.h*0.73+self._rect.top),(self._rect.right,self._rect.w*0.59+self._rect.top),2)
+		elif self._style == ACC_FLAT:
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.top),(self._rect.left,self._rect.bottom),2)
+			pygame.draw.arc(canvas,pygame.Color("black"),pygame.Rect(self._rect.left-self._rect.w,self._rect.top+self._rect.h*0.34,self._rect.w*2.0,self._rect.h*0.68),-pi/2,0,2)
+			pygame.draw.arc(canvas,pygame.Color("black"),pygame.Rect(self._rect.left-self._rect.w/3.0,self._rect.top+self._rect.h*0.5,self._rect.w*4.0/3.0,self._rect.h*0.34),0,pi/2,2)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.top+self._rect.h*0.67),(self._rect.left+self._rect.w/3.0,self._rect.top+self._rect.h/2.0),2)
+		elif self._style == ACC_NATURAL:
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.top),(self._rect.left,self._rect.top+self._rect.h*0.7),1)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.right,self._rect.top+self._rect.h*0.3),(self._rect.right,self._rect.bottom),1)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.top+self._rect.h*0.4),(self._rect.right,self._rect.top+self._rect.h*0.2),3)
+			pygame.draw.line(canvas,pygame.Color("black"),(self._rect.left,self._rect.top+self._rect.h*0.8),(self._rect.right,self._rect.top+self._rect.h*0.6),3)
 
 	def _setRect(self):
-		self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
+		if self._style == ACC_SHARP:
+			self._rect = self._parent._rect.move(-STAFFSPACING*1.3,0)
+		elif self._style == ACC_FLAT:
+			self._rect = self._parent._rect.move(-STAFFSPACING*1.3,-STAFFSPACING*0.4)
+			self._rect.inflate_ip(0,self._rect.h*0.8)
+		elif self._style == ACC_NATURAL:
+			self._rect = self._parent._rect.move(-STAFFSPACING*1.1,0)
+			self._rect.inflate_ip(-self._rect.w*0.6,self._rect.h)
 
 	def move(self):
 		"""
@@ -504,7 +523,7 @@ class Stem(MusicObject):
 		self._orderNotes()
 		self._clusterNotes()
 
-	# TODO: move from bottom and top line rather than base and length?
+	# TODO: move to bottom and top line rather than base and length?
 
 	def _orderNotes(self):
 		"""
