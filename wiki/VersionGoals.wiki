@@ -22,7 +22,7 @@ These versions represent incremental and significant goals for the next minor an
     * *Clustered notes in chords are handled correctly*
   * 0.3:
     * *Support for multi-segment gestures should be implemented*
-    * Basic accidentals should be recognized and attached to appropriate notes *(sharps work)*
+    * *Basic accidentals should be recognized and attached to appropriate notes * (they aren't all pretty, though, and classifier performance has suffered.
     * eighth and sixteenth note stems should be recognized when drawn.
   * 0.4:
     * Support for (basic) clefs
