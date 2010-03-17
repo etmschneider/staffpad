@@ -60,7 +60,7 @@ class Trainer:
 		# program.  This cursor scales with the zoom.
 		self.mouseSurface = makeOverlay((2,2))
 
-		s = MusicObjects.Staff((0,60),width)
+		s = MusicObjects.Staff(None,width,60)
 
 		self.background.fill(pygame.Color("white"))
 		s.draw(self.background, 1.0)
