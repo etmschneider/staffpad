@@ -91,7 +91,7 @@ class Page:
 			# Redraw (necessary because note may affect other clustered notes)
 			self.pad.redraw()
 
-		elif type == 'sharp':
+		elif type == 'sharp' or type == 'flat' or type == 'natural':
 			centerOffset = [0.5*(rect[0][0]+rect[1][0])+mus.STAFFSPACING*1.5,0.5*(rect[0][1]+rect[1][1])]
 
 			# get closest staff on which to attach sharp to note
@@ -103,10 +103,15 @@ class Page:
 			# TODO: Should there instead be a recurseGetClosest?
 
 			if len(closeNotes) > 0:
-				a = mus.Accidental(closeNotes[0],mus.ACC_SHARP)
+				if type == 'sharp':
+					a = mus.Accidental(closeNotes[0],mus.ACC_SHARP)
+				elif type == 'natural':
+					a = mus.Accidental(closeNotes[0],mus.ACC_NATURAL)
+				elif type == 'flat':
+					a = mus.Accidental(closeNotes[0],mus.ACC_FLAT)
 				a.draw(self.pad.background,self.pad.zoom);
 			else:
-				print "nowhere to put sharp!"
+				print "nowhere to put " + type
 
 # TODO: color unrecognized stuff red?
 
