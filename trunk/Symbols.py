@@ -41,54 +41,33 @@ def classify(shape):
 	for i in range(np.size(shape,0)):
 		shapeBinary[shape[i,1]-mnpts[1],shape[i,0]-mnpts[0]] = 1;
 
-	# Pick appropriate templates using aspect ratio
-	# TODO: could size play a part here, too?
-	aspectRatios = [(5,5),(10,1)]
-	templates = [['dot','circle','sharp','flat','natural'],['vline']]
-	ratioScore = []
-	for ratio in aspectRatios:
-		wt = ratio[1]
-		ht = ratio[0]
-		ratioScore.append((w*wt+h*ht)/sqrt(w*w+h*h)/sqrt(wt*wt+ht*ht))
-	if max(ratioScore) < 0.85:
-		#print "No matching aspect ratio"
-		return 'unclassified'
+	# Compute the projections of the shape
+	xProj = np.sum(shapeBinary,0)
+	yProj = np.sum(shapeBinary,1)
+	xProjNorm = np.interp(np.linspace(0,1,101),np.linspace(0,1,w),xProj)
+	yProjNorm = np.interp(np.linspace(0,1,101),np.linspace(0,1,h),yProj)
+	xProjNorm = np.reshape(xProjNorm,[1,101])
+	yProjNorm = np.reshape(yProjNorm,[1,101])
 
-	ratioNum = ratioScore.index(max(ratioScore))
-	ratio = aspectRatios[ratioNum]
-	templates = templates[ratioNum]
-	
-	# Transform the shape to the (currently standard) template size
-	shapeDensity = densityTransform(shapeBinary,ratio)
+	templates = ['dot','circle','flat','sharp','natural','vline','hat'] # vline hat etc...
 
 	# Compute a score for each template
 	scores = []
 	for name in templates:
-		templateMean = np.load('symbols/' + name + '-' + str(ratio[0]) + 'x' + str(ratio[1]) + '-mean.npy')
-		templateStd = np.load('symbols/' + name + '-' + str(ratio[0]) + 'x' + str(ratio[1]) + '-std.npy')
-		sc = 0
+		xProjTemplate = np.load('symbols/' + name + '-xproj_mu_sigma.npy');
+		yProjTemplate = np.load('symbols/' + name + '-yproj_mu_sigma.npy');
+		sizeTemplate = np.load('symbols/' + name + '-size_mu_sigma.npy');
 
-		# TODO: Do this in a matrix computation instead?
-		for i in range(ratio[0]):
-			for j in range(ratio[1]):
-				# TODO: to be a probability, this should be multiplied, or add
-				# the logs to prevent numerical issues...
+		# Use a sigmoid to approximate the normal CDF for each of these scores
+		xProjScore = np.mean(2/(1+np.exp(1.7*np.abs(xProjTemplate[0,:]-xProjNorm)/xProjTemplate[1,:])))
+		yProjScore = np.mean(2/(1+np.exp(1.7*np.abs(yProjTemplate[0,:]-yProjNorm)/yProjTemplate[1,:])))
+		xSizeScore = 2/(1+np.exp(1.7*np.abs(sizeTemplate[0,1]-w)/np.abs(sizeTemplate[1,1])))
+		ySizeScore = 2/(1+np.exp(1.7*np.abs(sizeTemplate[0,0]-h)/np.abs(sizeTemplate[1,0])))
 
-				# avoid n/0 numerical explosion
-				templateStd[i,j] = max(templateStd[i,j],0.001)
-
-				# distance from mean, normalized by standard deviation:
-				d = abs(templateMean[i,j]-shapeDensity[i,j])/templateStd[i,j]
-
-				# Use a sigmoid to kinda approximate the normal CDF
-				sc += 1-1/(1+np.exp(-(6*d-6)))
-
-		# Normalize over different template sizes
-		sc = sc/(ratio[0]*ratio[1])
-		scores.append(sc)
-
+		scores.append(sqrt(sqrt(xProjScore*yProjScore*xSizeScore*ySizeScore)))
+		
 	mxScore = max(scores)
-	if mxScore < 0.4:
+	if mxScore < 0.2:
 		return 'unclassified'
 	else:
 		return templates[scores.index(mxScore)]
@@ -130,7 +109,7 @@ def densityTransform(input,out_size):
 
 	return output[:-1,:-1]
 
-def train(shape,symbol,template_size):
+def train(shape,symbol):
 	"""
 	  This function takes in a shape from the training program, and averages its
 	  density image with the previous stored values for that symbol.
@@ -143,24 +122,39 @@ def train(shape,symbol,template_size):
 	h = mxpts[1] - mnpts[1] + 1
 
 	# Transform into a binary image
-	shape_binary = np.zeros([h,w],int)
+	shapeBinary = np.zeros([h,w],int)
 	for i in range(np.size(shape,0)):
-		shape_binary[shape[i,1]-mnpts[1],shape[i,0]-mnpts[0]] = 1;
+		shapeBinary[shape[i,1]-mnpts[1],shape[i,0]-mnpts[0]] = 1
 
-	# Transform the large grid of points into densities the size of the
-	# template
-	new_template = densityTransform(shape_binary,template_size)
-	new_template = np.reshape(new_template,(template_size[0],template_size[1],1))
+	xProj = np.sum(shapeBinary,0)
+	yProj = np.sum(shapeBinary,1)
+	xProjNorm = np.interp(np.linspace(0,1,101),np.linspace(0,1,w),xProj)
+	yProjNorm = np.interp(np.linspace(0,1,101),np.linspace(0,1,h),yProj)
+	xProjNorm = np.reshape(xProjNorm,[1,101])
+	yProjNorm = np.reshape(yProjNorm,[1,101])
 
-	name = symbol+'-'+str(template_size[0])+'x'+str(template_size[1])
+	# Load previous data from file
+	name = symbol
 
 	try:
-		prev_template = np.load('symbols/' + name + '.npy')
+		prev_xProj = np.load('symbols/' + name + '-xproj.npy')
+		prev_yProj = np.load('symbols/' + name + '-yproj.npy')
+		prev_size = np.load('symbols/' + name + '-size.npy')
 	except:
-		prev_template = np.zeros([template_size[0],template_size[1],0])
+		prev_xProj = np.zeros([0,101])
+		prev_yProj = np.zeros([0,101])
+		prev_size = np.zeros([0,2])
 
-	new_template = np.concatenate((prev_template,new_template),2)
+	xProj = np.concatenate((prev_xProj,xProjNorm),0)
+	yProj = np.concatenate((prev_yProj,yProjNorm),0)
+	new_size = np.concatenate((prev_size,[[h,w]]),0)
 
-	np.save('symbols/'+name,new_template)
-	np.save('symbols/'+name+'-mean',np.mean(new_template,2))
-	np.save('symbols/'+name+'-std',np.std(new_template,2))
+	# These files contain all the past data
+	np.save('symbols/' + name + '-xproj',xProj)
+	np.save('symbols/' + name + '-yproj',yProj)
+	np.save('symbols/' + name + '-size',new_size)
+
+	# These files just contain aggregate data for classification
+	np.save('symbols/' + name + '-xproj_mu_sigma',np.concatenate(([np.mean(xProj,0)],[np.std(xProj,0)]),0))
+	np.save('symbols/' + name + '-yproj_mu_sigma',np.concatenate(([np.mean(yProj,0)],[np.std(yProj,0)]),0))
+	np.save('symbols/' + name + '-size_mu_sigma',np.concatenate(([np.mean(new_size,0)],[np.std(new_size,0)]),0))

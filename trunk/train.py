@@ -32,7 +32,7 @@ def makeOverlay(size):
 	return overlay
 
 class Trainer:
-	def __init__(self,symbol,symSize):
+	def __init__(self,symbol):
 		width = 120
 		height = 120
 		"""
@@ -41,7 +41,6 @@ class Trainer:
 		"""
 		# Keep track of what symbol we are training
 		self.symbol = symbol
-		self.symSize = symSize
 
 		# The pygame screen on which everything is drawn
 		self.screen = pygame.display.set_mode([width,height])
@@ -135,7 +134,7 @@ class Trainer:
 				if self.symbol == 'classify':
 					print Symbols.classify(shape)
 				else: # Otherwise, train
-					Symbols.train(shape,self.symbol,self.symSize)
+					Symbols.train(shape,self.symbol)
 
 				# get a bounding rectangle for this shape
 				rect = Symbols.boundingBox(shape)
@@ -155,15 +154,12 @@ class Trainer:
 		pygame.quit()
 
 
-if len(sys.argv) != 4 and (len(sys.argv) != 2 or sys.argv[1] != 'classify'):
+if len(sys.argv) != 2:
 	print "Usage:"
-	print "   python train.py symbol <width> <height>"
+	print "   python train.py <symbol>"
 	print " or"
 	print "   python train.py classify"
 	exit()
 pygame.init()
-if len(sys.argv) == 4:
-	train = Trainer(sys.argv[1],(int(sys.argv[2]),int(sys.argv[3])))
-else:
-	train = Trainer(sys.argv[1],(0,0))
+train = Trainer(sys.argv[1])
 train.run()
