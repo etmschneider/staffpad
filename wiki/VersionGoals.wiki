@@ -21,13 +21,16 @@ These versions represent incremental and significant goals for the next minor an
       * *a training option should be added at some level*
     * *Clustered notes in chords are handled correctly*
   * 0.3:
-    * *Support for multi-segment gestures should be implemented*
-    * *Basic accidentals should be recognized and attached to appropriate notes * (they aren't all pretty, though, and classifier performance has suffered).
-    * eighth and sixteenth note stems should be recognized when drawn.
+    * *Support for multi-segment gestures implemented*
+    * *Basic accidentals recognized and attached to appropriate notes* (not pretty drawings of shapes, though)
+    * *Revamped classifier to boost performance*
+    * other note modifiers (hat, marcato, stacatto, accent, and rhythm dot) recognized and attached to appropriate notes
   * 0.4:
+    * eighth and sixteenth note stems should be recognized when drawn.
     * Support for (basic) clefs
-    * initial support for beams (even if it is restrictive
+    * initial support for beams (even if it is restrictive)
     * "drag/drop" movement of notes, stems, barlines, and clefs
+    * prettier shape drawings
 
 The first major milestone will be version 0.99  This will be a beta release.  At this point, the program is mostly usable, with basic functionality and structure solidified.  The requirements for this version are listed below:
 
