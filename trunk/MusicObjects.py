@@ -14,6 +14,7 @@ ACC_FLAT = -1
 ACC_NATURAL = 0
 ACC_SHARP = 1
 ACC_RHYTHM_DOT = 2
+ACC_STACCATO = 3
 
 BARLINE_NORMAL = 1
 
@@ -285,12 +286,15 @@ class Accent(MusicObject):
 		self._setRect()
 
 	def draw(self,canvas,scale):
-		if self._style == ACC_RHYTHM_DOT:
+		if self._style == ACC_RHYTHM_DOT or self._style == ACC_STACCATO:
 			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._rect.centerx)),int(round(self._rect.centery))], int(round(0.1*STAFFSPACING/2.0)))
 
 	def _setRect(self):
 		if self._style == ACC_RHYTHM_DOT:
 			self._rect = self._parent._rect.move(STAFFSPACING*1,0)
+			self._rect.inflate_ip(-self._rect.w*0.9,-self._rect.h*0.9)
+		elif self._style == ACC_STACCATO:
+			self._rect = self._parent._rect.move(0,-STAFFSPACING*1)
 			self._rect.inflate_ip(-self._rect.w*0.9,-self._rect.h*0.9)
 
 	def move(self):
