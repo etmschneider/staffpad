@@ -94,7 +94,7 @@ class Page:
 		elif type == 'sharp' or type == 'flat' or type == 'natural':
 			centerOffset = [0.5*(rect[0][0]+rect[1][0])+mus.STAFFSPACING*1.5,0.5*(rect[0][1]+rect[1][1])]
 
-			# get closest staff on which to attach sharp to note
+			# get closest staff on which to attach accidental to note
 			staff, dist = mus.getClosestStaff(self.staves,centerOffset)
 
 			r = mus.STAFFSPACING*0.25
@@ -109,6 +109,22 @@ class Page:
 					a = mus.Accidental(closeNotes[0],mus.ACC_NATURAL)
 				elif type == 'flat':
 					a = mus.Accidental(closeNotes[0],mus.ACC_FLAT)
+				a.draw(self.pad.background,self.pad.zoom);
+			else:
+				print "nowhere to put " + type
+		elif type == 'sm_dot':
+			centerOffset = [0.5*(rect[0][0]+rect[1][0])-mus.STAFFSPACING*1.0,0.5*(rect[0][1]+rect[1][1])]
+
+			# get closest staff on which to attach accidental to note
+			staff, dist = mus.getClosestStaff(self.staves,centerOffset)
+
+			r = mus.STAFFSPACING*0.25
+			area = pygame.Rect(centerOffset[0]-r,centerOffset[1]-r,2.0*r,2.0*r)
+			closeNotes = staff.recurseGetIntersectRect(area,mus.Note)
+
+			if len(closeNotes) > 0:
+				if type == 'sm_dot':
+					a = mus.Accent(closeNotes[0],mus.ACC_RHYTHM_DOT)
 				a.draw(self.pad.background,self.pad.zoom);
 			else:
 				print "nowhere to put " + type

@@ -49,7 +49,7 @@ def classify(shape):
 	xProjNorm = np.reshape(xProjNorm,[1,101])
 	yProjNorm = np.reshape(yProjNorm,[1,101])
 
-	templates = ['dot','circle','flat','sharp','natural','vline','hat'] # vline hat etc...
+	templates = ['dot','circle','flat','sharp','natural','vline','hat','sm_dot'] # vline hat etc...
 
 	# Compute a score for each template
 	scores = []
