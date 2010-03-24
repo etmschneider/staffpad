@@ -9,9 +9,11 @@ TYPE_ANY = -1
 NOTE_FILLED = -1
 NOTE_EMPTY = -2
 
+# Accidentals, Accents, and other note additions
 ACC_FLAT = -1
 ACC_NATURAL = 0
 ACC_SHARP = 1
+ACC_RHYTHM_DOT = 2
 
 BARLINE_NORMAL = 1
 
@@ -274,6 +276,29 @@ class Barline(MusicObject):
 		  For barlines, distance is the minimum distance to the barline
 		"""
 		return self._distVerticalLine(point)
+
+class Accent(MusicObject):
+	def __init__(self,parent,style):
+		MusicObject.__init__(self,parent)
+		self._parent = parent
+		self._style = style
+		self._setRect()
+
+	def draw(self,canvas,scale):
+		if self._style == ACC_RHYTHM_DOT:
+			pygame.draw.circle(canvas,pygame.Color("black"),[int(round(self._rect.centerx)),int(round(self._rect.centery))], int(round(0.1*STAFFSPACING/2.0)))
+
+	def _setRect(self):
+		if self._style == ACC_RHYTHM_DOT:
+			self._rect = self._parent._rect.move(STAFFSPACING*1,0)
+			self._rect.inflate_ip(-self._rect.w*0.9,-self._rect.h*0.9)
+
+	def move(self):
+		"""
+		  This function gets called when something above in the heirarchy has
+		  been moved.
+		"""
+		self._setRect()
 
 class Accidental(MusicObject):
 	"""
