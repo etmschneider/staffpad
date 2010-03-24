@@ -24,7 +24,7 @@ These versions represent incremental and significant goals for the next minor an
     * *Support for multi-segment gestures implemented*
     * *Basic accidentals recognized and attached to appropriate notes* (not pretty drawings of shapes, though)
     * *Revamped classifier to boost performance*
-    * other note modifiers (hat, marcato, stacatto, accent, and rhythm dot) recognized and attached to appropriate notes
+    * other note modifiers (hat, marcato, stacatto, accent, and *rhythm dot*) recognized and attached to appropriate notes
   * 0.4:
     * eighth and sixteenth note stems should be recognized when drawn.
     * Support for (basic) clefs
