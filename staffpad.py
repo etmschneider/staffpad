@@ -135,8 +135,6 @@ class Page:
 				else:
 					print "nowhere to put " + type
 
-# TODO: color unrecognized stuff red?
-
 		elif type == 'vline':
 			center = [0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1])]
 			top = rect[0][1]
@@ -187,10 +185,20 @@ class Page:
 				barline.draw(self.pad.background,self.pad.zoom);
 			else:
 				print "unrecognized vertical line"
-		elif type == 'line':
-			print "line recognized"
+		elif type == 'hline':
+			center = (0.5*(rect[0][0]+rect[1][0]),0.5*(rect[0][1]+rect[1][1]))
+			if 0:
+				pass
+			else:
+				print "unrecognized horizontal line"
+		elif type == 'rline':
+			print "right line recognized"
+		elif type == 'lline':
+			print "left line recognized"
 		else:
 			print "unhandled shape"
+			# TODO: color unrecognized stuff red?
+
 
 class StaffPad:
 	def __init__(self,width=512,height=512):

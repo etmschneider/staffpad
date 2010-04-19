@@ -53,13 +53,19 @@ def classify(shape):
 	w = mxpts[0] - mnpts[0] + 1
 	h = mxpts[1] - mnpts[1] + 1
 
-	if isLine(shape):
+	if w+h > 10 and isLine(shape):
 		x = shape[-1,0] - shape[0,0]
 		y = shape[-1,1] - shape[0,1]
-		angle = atan2(y,x)
-		if .9*pi/2 < angle < 1.1*pi/2 or .9*pi/2 < -angle < 1.1*pi/2:
+		# ensures positive angle between 0 and pi
+		angle = np.fmod(atan2(y,x)+2*pi,pi)
+		if .9*pi/2 < angle < 1.1*pi/2:
 			return 'vline'
-		return 'line'
+		elif 1.9*pi/2 < angle or angle < 0.1*pi/2:
+			return 'hline'
+		elif angle < pi/2:
+			return 'lline' # Left slanting line
+		else:
+			return 'rline' # Right slanting line
 
 	# Transform into a binary image
 	shapeBinary = np.zeros([h,w],int)
