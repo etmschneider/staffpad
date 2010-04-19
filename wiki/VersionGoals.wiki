@@ -24,6 +24,7 @@ These versions represent incremental and significant goals for the next minor an
     * *Support for multi-segment gestures implemented*
     * *Basic accidentals recognized and attached to appropriate notes* (not pretty drawings of shapes, though)
     * *Revamped classifier to boost performance*
+    * *Special-cased line detection to make classifier more robust*
     * other note modifiers (hat, marcato, *staccato*, accent, and *rhythm dot*) recognized and attached to appropriate notes
   * 0.4:
     * eighth and sixteenth note stems should be recognized when drawn.
