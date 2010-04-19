@@ -135,7 +135,6 @@ class Page:
 				else:
 					print "nowhere to put " + type
 
-
 # TODO: color unrecognized stuff red?
 
 		elif type == 'vline':
@@ -188,6 +187,8 @@ class Page:
 				barline.draw(self.pad.background,self.pad.zoom);
 			else:
 				print "unrecognized vertical line"
+		elif type == 'line':
+			print "line recognized"
 		else:
 			print "unhandled shape"
 

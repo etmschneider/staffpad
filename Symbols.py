@@ -3,7 +3,7 @@
 # the symbols directory, and they have a template file for each size.
 
 import numpy as np
-from math import pow, sqrt, pi, exp
+from math import pow, sqrt, pi, exp, atan2
 
 def center(shape):
 	mnpts = np.amin(shape,0)
@@ -16,6 +16,23 @@ def boundingBox(shape):
 	mnpts = np.amin(shape,0)
 	mxpts = np.amax(shape,0)
 	return (mnpts,mxpts)
+
+""" This function returns the true if the coordinates given define a line from
+the first to last; otherwise, it returns false.  The condition to be a line is
+that every point must be a distance less than or equal to 3 pixels away from a
+line directly between the start and end points. """
+#TODO: this could be sped up via a better algorithm
+def isLine(coords):
+	start = coords[0,0:2] #x,y
+	end = coords[-1,0:2] #x,y
+	normLine = (end-start)/np.sqrt(np.dot(end-start,end-start))
+	for i in range(np.size(coords,0)):
+		newPoint = coords[i,0:2]
+		newLen = np.sqrt(np.dot(newPoint-start,newPoint-start))
+		angleBetween = np.arccos(np.dot((newPoint-start),normLine)/newLen)
+		if abs(np.sin(angleBetween)*newLen) > 3.5:
+			return False
+	return True
 	
 def classify(shape):
 	"""
@@ -36,6 +53,14 @@ def classify(shape):
 	w = mxpts[0] - mnpts[0] + 1
 	h = mxpts[1] - mnpts[1] + 1
 
+	if isLine(shape):
+		x = shape[-1,0] - shape[0,0]
+		y = shape[-1,1] - shape[0,1]
+		angle = atan2(y,x)
+		if .9*pi/2 < angle < 1.1*pi/2 or .9*pi/2 < -angle < 1.1*pi/2:
+			return 'vline'
+		return 'line'
+
 	# Transform into a binary image
 	shapeBinary = np.zeros([h,w],int)
 	for i in range(np.size(shape,0)):
@@ -49,7 +74,7 @@ def classify(shape):
 	xProjNorm = np.reshape(xProjNorm,[1,101])
 	yProjNorm = np.reshape(yProjNorm,[1,101])
 
-	templates = ['dot','circle','flat','sharp','natural','vline','hat','sm_dot'] # vline hat etc...
+	templates = ['dot','circle','flat','sharp','natural','hat','sm_dot']
 
 	# Compute a score for each template
 	scores = []
